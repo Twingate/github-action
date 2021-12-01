@@ -1,0 +1,25 @@
+name: 'Connect to Twingate'
+description: 'Connects to Twingate'
+inputs:
+  service-key:
+    description: 'The Twingate Service Key'
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Install Twingate
+      shell: bash
+      run: |
+        echo "deb [trusted=yes] https://packages.twingate.com/apt/ /" | sudo tee /etc/apt/sources.list.d/twingate.list
+        sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/twingate.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
+        sudo apt install -yq twingate
+    - name: Setup and start Twingate
+      shell: bash
+      run: |
+        echo '${{ inputs.service-key }}' | sudo twingate setup --headless=-
+        sudo twingate start
+        TWINGATE_STATUS=$(sudo twingate status)
+        if [[ "$TWINGATE_STATUS" != 'online' ]]; then
+          echo "Exiting with error as TwinGate is not connected"
+          exit 1
+        fi
