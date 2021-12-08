@@ -1,5 +1,8 @@
 name: 'Connect to Twingate'
-description: 'Connects to Twingate'
+description: 'Connects to Twingate protected resources from yout Github Action workflow'
+branding:
+  icon: 'arrow-right-circle'
+  color: 'black'
 inputs:
   service-key:
     description: 'The Twingate Service Key'
