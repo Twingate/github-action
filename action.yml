@@ -1,11 +1,11 @@
 name: 'Connect to Twingate'
-description: 'Connects to Twingate protected resources from yout Github Action workflow'
+description: 'Connects to Twingate protected resources from your Github Action workflow'
 branding:
   icon: 'arrow-right-circle'
   color: 'black'
 inputs:
   service-key:
-    description: 'The Twingate Service Key'
+    description: 'Twingate Service Key'
     required: true
 runs:
   using: "composite"
@@ -23,6 +23,6 @@ runs:
         sudo twingate start
         TWINGATE_STATUS=$(sudo twingate status)
         if [[ "$TWINGATE_STATUS" != 'online' ]]; then
-          echo "Exiting with error as TwinGate is not connected"
+          echo "Exiting with error as Twingate is not connected"
           exit 1
         fi
