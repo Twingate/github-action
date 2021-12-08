@@ -2,7 +2,7 @@
 A GitHub action for connecting to Twingate
 
 # Purpose
-This action is used to connect you Github workflows to Twingate. One use case for this is to enable running GitHub workflows on public runners while having IP restrictions enabled(your Twingate service must be routing `github.com`) 
+This action is used to connect your Github workflows to Twingate. One use case for this is to enable running GitHub workflows on public runners while having IP restrictions enabled (your Twingate service must be routing `github.com`).
 
 # Usage
 ```yaml
