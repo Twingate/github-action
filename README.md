@@ -6,7 +6,7 @@ This action is used to connect you Github workflows to Twingate. One use case fo
 
 # Usage
 ```yaml
-- uses: twingate/twingate-connect-action@v1
+- uses: twingate/github-action@v1
   with:
     # The Twingate Service Key used to connect Twingate to the proper service
     # [Learn more about Twingate Services](https://docs.twingate.com/docs/services#service-creation-steps)
