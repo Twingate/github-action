@@ -21,8 +21,4 @@ runs:
       run: |
         echo '${{ inputs.service-key }}' | sudo twingate setup --headless=-
         sudo twingate start
-        TWINGATE_STATUS=$(sudo twingate status)
-        if [[ "$TWINGATE_STATUS" != 'online' ]]; then
-          echo "Exiting with error as Twingate is not connected"
-          exit 1
-        fi
+        timeout 1m bash -c 'until sudo twingate status | grep 'online'; do sleep 10; done'
