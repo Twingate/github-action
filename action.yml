@@ -20,9 +20,34 @@ runs:
       shell: bash
       run: |
         echo '${{ inputs.service-key }}' | sudo twingate setup --headless=-
-        sudo twingate start
-        TWINGATE_STATUS=$(sudo twingate status)
-        if [[ "$TWINGATE_STATUS" != 'online' ]]; then
-          echo "Exiting with error as Twingate is not connected"
+        MAX_RETRIES=5
+        WAIT_TIME=5
+        n=0
+
+        while [ $n -lt $MAX_RETRIES ]; do
+          echo "Starting Twingate service..."
+          sudo twingate start
+
+          echo "Waiting $WAIT_TIME seconds for Twingate service to start..."
+          sleep $WAIT_TIME
+
+          status=$(sudo twingate status)
+
+          if [ "$status" = "online" ]; then
+            echo "Twingate service is connected."
+            break
+          else
+            sudo twingate stop
+          fi
+
+          # Increment the retry counter and wait time
+          n=$((n+1))
+          WAIT_TIME=$((WAIT_TIME+5))
+
+          echo "Twingate service is not connected. Retrying ..."
+        done
+
+        if [ $n -eq $MAX_RETRIES ]; then
+          echo "Twingate service failed to connect."
           exit 1
         fi
