@@ -28,6 +28,7 @@ runs:
 
         while [ $n -lt $MAX_RETRIES ]; do
           echo "Starting Twingate service..."
+          curl -I https://billhop.twingate.com
           sudo twingate start | tee twingate.log
           sudo cat twingate.log
           echo "Waiting $WAIT_TIME seconds for Twingate service to start..."
