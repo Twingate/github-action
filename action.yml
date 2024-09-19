@@ -28,8 +28,7 @@ runs:
 
         while [ $n -lt $MAX_RETRIES ]; do
           echo "Starting Twingate service..."
-          sudo twingate start | tee twingate.log
-          sudo cat twingate.log
+          sudo twingate start
           echo "Waiting $WAIT_TIME seconds for Twingate service to start..."
           sleep $WAIT_TIME
 
