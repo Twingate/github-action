@@ -22,6 +22,8 @@ runs:
       shell: bash
       run: |
         echo '${{ inputs.service-key }}' | sudo twingate setup --headless=-
+        sudo twingate config log-level debug
+
         MAX_RETRIES=5
         WAIT_TIME=5
         n=0
@@ -48,6 +50,8 @@ runs:
 
           echo "Twingate service is not connected. Retrying ..."
         done
+
+        ls -la /var/log/twingated.log && cat /var/log/twingated.log
 
         if [ $n -eq $MAX_RETRIES ]; then
           echo "Twingate service failed to connect."
