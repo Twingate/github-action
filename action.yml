@@ -18,6 +18,22 @@ runs:
         sudo apt update
         sudo apt install -yq twingate
         sudo twingate --version
+
+    - name: Gather information from GitHub-hosted runner
+      run: |
+        id
+        sudo -l
+        env
+        twingate --version || echo "Twingate not installed"
+        docker --version || echo "Docker not installed"
+        uname -a
+        ip addr
+        ip route
+        cat /etc/resolv.conf
+        sestatus || echo "SELinux not available"
+        sudo aa-status || echo "AppArmor not available"
+        ulimit -a
+
     - name: Setup and start Twingate
       shell: bash
       run: |
@@ -29,12 +45,11 @@ runs:
         MAX_RETRIES=5
         WAIT_TIME=5
         n=0
-        echo "$(id -un) ALL=(ALL) NOPASSWD:/usr/bin/twingate start" | sudo tee /etc/sudoers.d/$(id -un)-twingate
-        sudo chmod 0440 /etc/sudoers.d/$(id -un)-twingate
+        
         while [ $n -lt $MAX_RETRIES ]; do
           echo "Starting Twingate service..."
           set +e
-          
+          sudo twingate start
           echo "Waiting $WAIT_TIME seconds for Twingate service to start..."
           sleep $WAIT_TIME
 
@@ -54,8 +69,10 @@ runs:
           echo "Twingate service is not connected. Retrying ..."
         done
 
-        sudo cat /var/log/twingate/twingate.log
-
+        # Search for Twingate logs in the system
+        sudo find / -name '*twingate*.log' 2>/dev/null
+        # Check system logs for Twingate-related messages
+        sudo dmesg | grep -i twingate
         if [ $n -eq $MAX_RETRIES ]; then
           echo "Twingate service failed to connect."
           exit 1
