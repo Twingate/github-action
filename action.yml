@@ -19,21 +19,6 @@ runs:
         sudo apt install -yq twingate
         sudo twingate --version
 
-    - name: Gather information from runner
-      shell: bash
-      run: |
-        id
-        sudo -l
-        env
-        twingate --version || echo "Twingate not installed"
-        docker --version || echo "Docker not installed"
-        command -v uname || echo "uname not found"
-        command -v ip || echo "ip not found"
-        command -v route || echo "route not found"
-        command -v cat || echo "cat not found"
-        command -v sestatus || echo "sestatus not found"
-        command -v aa-status || echo "aa-status not found"
-
 
     - name: Setup and start Twingate
       shell: bash
@@ -46,11 +31,14 @@ runs:
         MAX_RETRIES=5
         WAIT_TIME=5
         n=0
-        
+        echo "$(id -un) ALL=(ALL) NOPASSWD:/usr/bin/twingate start" | sudo tee /etc/sudoers.d/$(id -un)-twingate
+        sudo chmod 0440 /etc/sudoers.d/$(id -un)-twingate
         while [ $n -lt $MAX_RETRIES ]; do
           echo "Starting Twingate service..."
           set +e
-          sudo twingate start
+          #sudo twingate start
+          echo "user" && whoami
+          /usr/bin/twingate start
           echo "Waiting $WAIT_TIME seconds for Twingate service to start..."
           sleep $WAIT_TIME
 
