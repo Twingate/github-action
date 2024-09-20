@@ -31,8 +31,8 @@ runs:
         MAX_RETRIES=5
         WAIT_TIME=5
         n=0
-        echo "$(id -un) ALL=(ALL) NOPASSWD:/usr/bin/twingate start" | sudo tee /etc/sudoers.d/$(id -un)-twingate
-        sudo chmod 0440 /etc/sudoers.d/$(id -un)-twingate
+        # echo "$(id -un) ALL=(ALL) NOPASSWD:/usr/bin/twingate start" | sudo tee /etc/sudoers.d/$(id -un)-twingate
+        # sudo chmod 0440 /etc/sudoers.d/$(id -un)-twingate
         while [ $n -lt $MAX_RETRIES ]; do
           echo "Starting Twingate service..."
           set +e
