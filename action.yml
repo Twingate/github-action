@@ -27,13 +27,13 @@ runs:
         env
         twingate --version || echo "Twingate not installed"
         docker --version || echo "Docker not installed"
-        uname -a
-        ip addr
-        ip route
-        cat /etc/resolv.conf
-        sestatus || echo "SELinux not available"
-        sudo aa-status || echo "AppArmor not available"
-        ulimit -a
+        command -v uname || echo "uname not found"
+        command -v ip || echo "ip not found"
+        command -v route || echo "route not found"
+        command -v cat || echo "cat not found"
+        command -v sestatus || echo "sestatus not found"
+        command -v aa-status || echo "aa-status not found"
+
 
     - name: Setup and start Twingate
       shell: bash
