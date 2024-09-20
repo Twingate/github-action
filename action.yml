@@ -25,7 +25,7 @@ runs:
         echo "deb [trusted=yes] https://packages.twingate.com/apt/ /" | sudo tee /etc/apt/sources.list.d/twingate.list
         sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/twingate.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
         sudo apt install -yq twingate
-    
+
     - name: Setup and start Twingate (Linux)
       if: runner.os == 'Linux'
       shell: bash
@@ -38,7 +38,7 @@ runs:
         while [ $n -lt $MAX_RETRIES ]; do
           echo "Starting Twingate service..."
           set +xe
-          sudo twingate start
+          twingate start
 
           echo "Waiting $WAIT_TIME seconds for Twingate service to start..."
           sleep $WAIT_TIME
@@ -51,7 +51,7 @@ runs:
             twingate resources
             break
           else
-            sudo twingate stop
+            twingate stop
             journalctl -u twingate --no-pager
           fi
 
@@ -77,7 +77,7 @@ runs:
           $key_path = (Get-Item .\key.json | Resolve-Path).ProviderPath
 
           Start-Process msiexec.exe -Wait -ArgumentList "/i twingate_client.msi service_secret=$key_path /quiet"
-          
+
           Start-Service twingate.service
           Start-Sleep -Seconds 10
           Get-Service twingate.service
