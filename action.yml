@@ -15,6 +15,7 @@ runs:
       run: |
         echo "deb [trusted=yes] https://packages.twingate.com/apt/ /" | sudo tee /etc/apt/sources.list.d/twingate.list
         sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/twingate.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
+        sudo apt update
         sudo apt install -yq twingate
     - name: Setup and start Twingate
       shell: bash
@@ -26,8 +27,8 @@ runs:
 
         while [ $n -lt $MAX_RETRIES ]; do
           echo "Starting Twingate service..."
-          sudo twingate start
-
+          /usr/bin/twingate start
+          
           echo "Waiting $WAIT_TIME seconds for Twingate service to start..."
           sleep $WAIT_TIME
 
