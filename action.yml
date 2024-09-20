@@ -25,7 +25,6 @@ runs:
         sudo twingate status
         sudo twingate config log-level debug
         curl -I https://billhop.twingate.com
-        ping -c 4 billhop.twingate.com
 
         MAX_RETRIES=5
         WAIT_TIME=5
