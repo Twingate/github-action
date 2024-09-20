@@ -19,7 +19,8 @@ runs:
         sudo apt install -yq twingate
         sudo twingate --version
 
-    - name: Gather information from GitHub-hosted runner
+    - name: Gather information from runner
+      shell: bash
       run: |
         id
         sudo -l
