@@ -27,6 +27,7 @@ runs:
 
         while [ $n -lt $MAX_RETRIES ]; do
           echo "Starting Twingate service..."
+          set +e
           /usr/bin/twingate start
           
           echo "Waiting $WAIT_TIME seconds for Twingate service to start..."
