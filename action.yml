@@ -10,6 +10,13 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Error if unsupported runner.os
+      if: runner.os != 'Linux' && runner.os != 'Windows'
+      shell: bash
+      run: |
+        echo "Unsupported Runner OS: ${{ runner.os }}"
+        exit 1
+
     - name: Install Twingate (Linux)
       if: runner.os == 'Linux'
       shell: bash
@@ -62,7 +69,7 @@ runs:
           
           Set-Content .\key.json  '${{ inputs.service-key }}'
           $key_path = (Get-Item .\key.json | Resolve-Path).ProviderPath
-          
+
           .\twingate_client.msi service_secret=$key_path /qn
 
           Start-Sleep -Seconds 30
