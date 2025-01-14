@@ -1,21 +1,37 @@
 name: test
 on:
     workflow_dispatch:
+    pull_request:
+    push:
+        branches:
+            - 'main'
 
 jobs:
     test:
         runs-on: ubuntu-latest
         steps:
-            - uses: twingate/github-action@main
+            - uses: actions/checkout@v4
+
+            - name: Move local action to folder where it can be tested
+              shell: bash
+              run: |
+                mkdir -p .github/actions/test
+                cp action.yml .github/actions/test/action.yml
+            
+            - uses: ./.github/actions/test
               with:
                 # The Twingate Service Key used to connect Twingate to the proper service
                 # Learn more about [Twingate Services](https://docs.twingate.com/docs/services)
                 #
                 # Required
                 service-key: ${{ secrets.SERVICE_KEY }}
+
+            - name: (optional) Twingate logs
+              run: journalctl -u twingate
             
             - name: (optional) Twingate status
               run: twingate status
+                
             
             - name: Access a secure resource
               env:
