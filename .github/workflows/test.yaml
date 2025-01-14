@@ -20,10 +20,6 @@ jobs:
             
             - uses: ./.github/actions/test
               with:
-                # The Twingate Service Key used to connect Twingate to the proper service
-                # Learn more about [Twingate Services](https://docs.twingate.com/docs/services)
-                #
-                # Required
                 service-key: ${{ secrets.SERVICE_KEY }}
 
             - name: (optional) Twingate logs
