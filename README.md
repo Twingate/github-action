@@ -18,3 +18,11 @@ There are two common use cases:
     # Required
     service-key: ${{ secrets.EXAMPLE_SERVICE_KEY_SECRET_NAME }}
 ```
+
+
+# Development
+
+To run action locally to debug you can use `act` (`brew install act`):
+```
+act -j test -s SERVICE_KEY=<a secrive account key>
+```
