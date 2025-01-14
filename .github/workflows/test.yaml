@@ -1,0 +1,27 @@
+name: test
+on:
+    workflow_dispatch:
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: twingate/github-action@v1
+              with:
+                # The Twingate Service Key used to connect Twingate to the proper service
+                # Learn more about [Twingate Services](https://docs.twingate.com/docs/services)
+                #
+                # Required
+                service-key: ${{ secrets.SERVICE_KEY }}
+            
+            - name: (optional) Twingate status
+              run: twingate status
+            
+            - name: Access a secure resource
+              env:
+                TEST_URL: http://business.prod.beamreachinc.int/
+              run: |
+                echo Calling $TEST_URL 🚀
+                curl -v $TEST_URL
+
+            - run: echo "SUCCESS!!! 🤩 This job's status is ${{ job.status }}."
