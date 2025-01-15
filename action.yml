@@ -25,7 +25,9 @@ runs:
         echo "deb [trusted=yes] https://packages.twingate.com/apt/ /" | sudo tee /etc/apt/sources.list.d/twingate.list
         sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/twingate.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
         sudo apt install -yq twingate
-    - name: Setup and start Twingate
+    
+    - name: Setup and start Twingate (Linux)
+      if: runner.os == 'Linux'
       shell: bash
       run: |
         echo '${{ inputs.service-key }}' | sudo twingate setup --headless -
