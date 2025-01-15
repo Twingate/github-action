@@ -13,15 +13,14 @@ runs:
     - name: Install Twingate
       shell: bash
       run: |
+        sudo apt update
         echo "deb [trusted=yes] https://packages.twingate.com/apt/ /" | sudo tee /etc/apt/sources.list.d/twingate.list
         sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/twingate.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
-        sudo apt update
         sudo apt install -yq twingate
     - name: Setup and start Twingate
       shell: bash
       run: |
-        set -xe
-        echo '${{ inputs.service-key }}' | sudo twingate setup --headless=-
+        echo '${{ inputs.service-key }}' | sudo twingate setup --headless -
         MAX_RETRIES=5
         WAIT_TIME=5
         n=0
@@ -34,7 +33,8 @@ runs:
           echo "Waiting $WAIT_TIME seconds for Twingate service to start..."
           sleep $WAIT_TIME
 
-          status=$(sudo twingate status)
+          status=$(twingate status)
+          journalctl -u twingate --since "1 hour ago"
 
           echo "Twingate service status: '$status'"
 

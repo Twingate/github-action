@@ -27,7 +27,7 @@ jobs:
 
             - name: (optional) Twingate status
               run: twingate status
-
+                
             - name: Access a secure resource
               env:
                 TEST_URL: http://business.prod.beamreachinc.int/
