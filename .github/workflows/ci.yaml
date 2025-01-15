@@ -7,32 +7,61 @@ on:
             - 'main'
 
 jobs:
-    test:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v4
+    test-linux:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
 
-            - name: Move local action to folder where it can be tested
-              shell: bash
-              run: |
-                mkdir -p .github/actions/test
-                cp action.yml .github/actions/test/action.yml
+        - name: Move local action to folder where it can be tested
+          shell: bash
+          run: |
+            mkdir -p .github/actions/test
+            cp action.yml .github/actions/test/action.yml
 
-            - uses: ./.github/actions/test
-              with:
-                service-key: ${{ secrets.SERVICE_KEY }}
+        - uses: ./.github/actions/test
+          with:
+            service-key: ${{ secrets.SERVICE_KEY }}
 
-            - name: (optional) Twingate logs
-              run: journalctl -u twingate
+        - name: (optional) Twingate logs
+          run: journalctl -u twingate
 
-            - name: (optional) Twingate status
-              run: twingate status
-                
-            - name: Access a secure resource
-              env:
-                TEST_URL: http://business.prod.beamreachinc.int/
-              run: |
-                echo Calling $TEST_URL 🚀
-                curl -v $TEST_URL
+        - name: (optional) Twingate status
+          run: twingate status
+            
+        - name: Access a secure resource
+          env:
+            TEST_URL: http://business.prod.beamreachinc.int/
+          run: |
+            echo Calling $TEST_URL 🚀
+            curl -v $TEST_URL
 
-            - run: echo "SUCCESS!!! 🤩 This job's status is ${{ job.status }}."
+        - run: echo "SUCCESS!!! 🤩 This job's status is ${{ job.status }}."
+
+    test-windows:
+      runs-on: windows-latest
+      steps:
+        - uses: actions/checkout@v4
+
+        - name: Move local action to folder where it can be tested
+          shell: powershell
+          run: |
+            New-Item -Path ".github/actions/test" -ItemType Directory -Force
+            Copy-Item -Path "action.yml" -Destination ".github/actions/test/action.yml" -Force
+
+        - uses: ./.github/actions/test
+          with:
+            service-key: ${{ secrets.SERVICE_KEY }}
+  
+        - name: (optional) Twingate status
+          run: twingate status
+            
+        - name: Access a secure resource
+          shell: powershell
+          env:
+            TEST_URL: http://business.prod.beamreachinc.int/
+          run: |
+            Write-Host "Calling $env:TEST_URL 🚀"
+            Invoke-WebRequest -Uri $env:TEST_URL -Verbose
+
+        - shell: powershell
+          run: Write-Host "SUCCESS!!! 🤩 This job's status is ${{ job.status }}."
