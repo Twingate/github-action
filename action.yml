@@ -20,6 +20,7 @@ runs:
     - name: Setup and start Twingate
       shell: bash
       run: |
+        set -xe
         echo '${{ inputs.service-key }}' | sudo twingate setup --headless=-
         MAX_RETRIES=5
         WAIT_TIME=5
@@ -27,7 +28,7 @@ runs:
 
         while [ $n -lt $MAX_RETRIES ]; do
           echo "Starting Twingate service..."
-          set +e
+          set +xe
           sudo twingate start
 
           echo "Waiting $WAIT_TIME seconds for Twingate service to start..."
@@ -35,11 +36,15 @@ runs:
 
           status=$(sudo twingate status)
 
+          echo "Twingate service status: '$status'"
+
           if [ "$status" = "online" ]; then
             echo "Twingate service is connected."
+            twingate resources
             break
           else
             sudo twingate stop
+            journalctl -u twingate --no-pager
           fi
 
           # Increment the retry counter and wait time

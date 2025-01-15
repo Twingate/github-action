@@ -24,7 +24,7 @@ There are two common use cases:
 
 To run action locally to debug you can use `act` (`brew install act`):
 ```
-act -j test -s SERVICE_KEY
+act -j test -s SERVICE_KEY --container-options "--cap-add NET_ADMIN --device /dev/net/tun"
 ```
 
 It'll ask for `SERVICE_KEY` value interactively.

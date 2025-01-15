@@ -17,17 +17,16 @@ jobs:
               run: |
                 mkdir -p .github/actions/test
                 cp action.yml .github/actions/test/action.yml
-            
+
             - uses: ./.github/actions/test
               with:
                 service-key: ${{ secrets.SERVICE_KEY }}
 
             - name: (optional) Twingate logs
               run: journalctl -u twingate
-            
+
             - name: (optional) Twingate status
               run: twingate status
-                
 
             - name: Access a secure resource
               env:
