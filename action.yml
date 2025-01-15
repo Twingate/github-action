@@ -34,8 +34,6 @@ runs:
           sleep $WAIT_TIME
 
           status=$(twingate status)
-          journalctl -u twingate --since "1 hour ago"
-
           echo "Twingate service status: '$status'"
 
           if [ "$status" = "online" ]; then
