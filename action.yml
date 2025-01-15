@@ -72,9 +72,12 @@ runs:
       shell: powershell
       run: |
           Invoke-WebRequest https://api.twingate.com/download/windows?installer=msi -OutFile .\twingate_client.msi
+
           Set-Content .\key.json  '${{ inputs.service-key }}'
           $key_path = (Get-Item .\key.json | Resolve-Path).ProviderPath
+
           .\twingate_client.msi service_secret=$key_path /qn
+          
           Start-Sleep -Seconds 30
           Get-Service twingate.service
           Start-Service twingate.service
