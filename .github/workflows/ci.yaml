@@ -73,5 +73,10 @@ jobs:
             Write-Host "Calling $env:TEST_URL 🚀"
             Invoke-WebRequest -Uri $env:TEST_URL -Verbose
 
+        - name: print logs
+          shell: powershell
+          when: always
+          run: Get-Content "$env:PROGRAMDATA\Twingate\logs\twingate.service.log"
+
         - shell: powershell
           run: Write-Host "SUCCESS!!! 🤩 This job's status is ${{ job.status }}."

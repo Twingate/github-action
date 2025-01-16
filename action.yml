@@ -78,8 +78,6 @@ runs:
 
           Start-Process msiexec.exe -Wait -ArgumentList "/i twingate_client.msi service_secret=$key_path /quiet"
           
-          Get-Service twingate.service
           Start-Service twingate.service
-          Start-Sleep -Seconds 30
+          Start-Sleep -Seconds 10
           Get-Service twingate.service
-          Get-Content -Path "$env:PROGRAMDATA\Twingate\logs\twingate.service.log"
