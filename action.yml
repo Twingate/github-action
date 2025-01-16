@@ -76,7 +76,7 @@ runs:
           Set-Content .\key.json  '${{ inputs.service-key }}'
           $key_path = (Get-Item .\key.json | Resolve-Path).ProviderPath
 
-          .\twingate_client.msi service_secret=$key_path /qn
+          msiexec.exe /I "twingate_client.msi" /QN /L*V! "C:\msilog.log" 
           
           Start-Sleep -Seconds 30
           Get-Service twingate.service
