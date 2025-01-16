@@ -8,6 +8,10 @@ on:
 
 jobs:
     test:
+      strategy:
+        max-parallel: 1
+        matrix:
+          runs-on: [ubuntu-latest, ubuntu-24.04, ubuntu-22.04, ubuntu-20.04]
       runs-on: ubuntu-latest
       steps:
         - uses: actions/checkout@v4
