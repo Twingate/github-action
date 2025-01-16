@@ -14,13 +14,13 @@ jobs:
           runs-on: [ubuntu-latest, ubuntu-24.04, ubuntu-22.04, ubuntu-20.04]
           include:
             - runs-on: ubuntu-latest
-              service_key: ${{ secrets.SERVICE_KEY }}
+              service_key: SERVICE_KEY
             - runs-on: ubuntu-24.04
-              service_key: ${{ secrets.SERVICE_KEY1 }}
+              service_key: SERVICE_KEY1
             - runs-on: ubuntu-22.04
-              service_key: ${{ secrets.SERVICE_KEY2 }}
+              service_key: SERVICE_KEY2
             - runs-on: ubuntu-20.04
-              service-key: ${{ secrets.SERVICE_KEY3 }}
+              service_key: SERVICE_KEY3
       runs-on: ${{ matrix.runs-on }}
       steps:
         - uses: actions/checkout@v4
@@ -33,7 +33,7 @@ jobs:
 
         - uses: ./.github/actions/test
           with:
-            service-key: ${{ matrix.service-key }}
+            service-key: ${{ secrets[matrix.service-key] }}
 
         - name: (optional) Twingate logs
           run: journalctl -u twingate
