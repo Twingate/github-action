@@ -80,5 +80,5 @@ runs:
           
           Get-Service twingate.service
           Start-Service twingate.service
-          Start-Sleep -Seconds 20
+          Start-Sleep -Seconds 30
           Get-Service twingate.service
