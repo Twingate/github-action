@@ -73,7 +73,7 @@ jobs:
             Write-Host "Calling $env:TEST_URL 🚀"
             Invoke-WebRequest -Uri $env:TEST_URL -Verbose
 
-        - name: print logs
+        - name: Print Client Logs
           shell: powershell
           if: always()
           run: Get-Content "$env:PROGRAMDATA\Twingate\logs\twingate.service.log"
