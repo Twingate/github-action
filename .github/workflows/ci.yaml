@@ -8,7 +8,20 @@ on:
 
 jobs:
     test-linux:
-      runs-on: ubuntu-latest
+      strategy:
+        max-parallel: 4
+        matrix:
+          runs-on: [ubuntu-latest, ubuntu-24.04, ubuntu-22.04, ubuntu-20.04]
+          include:
+            - runs-on: ubuntu-latest
+              service-key: SERVICE_KEY
+            - runs-on: ubuntu-24.04
+              service-key: SERVICE_KEY1
+            - runs-on: ubuntu-22.04
+              service-key: SERVICE_KEY2
+            - runs-on: ubuntu-20.04
+              service-key: SERVICE_KEY3
+      runs-on: ${{ matrix.runs-on }}
       steps:
         - uses: actions/checkout@v4
 
@@ -20,7 +33,7 @@ jobs:
 
         - uses: ./.github/actions/test
           with:
-            service-key: ${{ secrets.SERVICE_KEY }}
+            service-key: ${{ secrets[matrix.service-key] }}
 
         - name: (optional) Twingate logs
           run: journalctl -u twingate
@@ -50,7 +63,7 @@ jobs:
 
         - uses: ./.github/actions/test
           with:
-            service-key: ${{ secrets.SERVICE_KEY }}
+            service-key: ${{ secrets.SERVICE_KEY_WIN1 }}
   
         - name: Access a secure resource
           shell: powershell
