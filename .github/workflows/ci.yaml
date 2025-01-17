@@ -53,7 +53,6 @@ jobs:
             curl -v $TEST_URL
 
         - name: Print client logs
-          shell: powershell
           if: always()
           run: journalctl -u twingate
 
