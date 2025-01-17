@@ -52,6 +52,11 @@ jobs:
             echo Calling $TEST_URL 🚀
             curl -v $TEST_URL
 
+        - name: Print client logs
+          shell: powershell
+          if: always()
+          run: journalctl -u twingate
+
         - run: echo "SUCCESS!!! 🤩 This job's status is ${{ job.status }}."
 
     test-windows:
