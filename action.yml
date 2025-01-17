@@ -10,14 +10,24 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Install Twingate
+    - name: Error if unsupported runner.os
+      if: runner.os != 'Linux' && runner.os != 'Windows'
+      shell: bash
+      run: |
+        echo "Unsupported Runner OS: ${{ runner.os }}"
+        exit 1
+
+    - name: Install Twingate (Linux)
+      if: runner.os == 'Linux'
       shell: bash
       run: |
         sudo apt update
         echo "deb [trusted=yes] https://packages.twingate.com/apt/ /" | sudo tee /etc/apt/sources.list.d/twingate.list
         sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/twingate.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
         sudo apt install -yq twingate
-    - name: Setup and start Twingate
+    
+    - name: Setup and start Twingate (Linux)
+      if: runner.os == 'Linux'
       shell: bash
       run: |
         echo '${{ inputs.service-key }}' | sudo twingate setup --headless -
@@ -56,3 +66,18 @@ runs:
           echo "Twingate service failed to connect."
           exit 1
         fi
+
+    - name: Install and Start Twingate (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+          Invoke-WebRequest https://api.twingate.com/download/windows?installer=msi -OutFile .\twingate_client.msi
+
+          Set-Content .\key.json  '${{ inputs.service-key }}'
+          $key_path = (Get-Item .\key.json | Resolve-Path).ProviderPath
+
+          Start-Process msiexec.exe -Wait -ArgumentList "/i twingate_client.msi service_secret=$key_path /quiet"
+          
+          Start-Service twingate.service
+          Start-Sleep -Seconds 10
+          Get-Service twingate.service
