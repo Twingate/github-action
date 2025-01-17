@@ -51,7 +51,20 @@ jobs:
         - run: echo "SUCCESS!!! 🤩 This job's status is ${{ job.status }}."
 
     test-windows:
-      runs-on: windows-latest
+      strategy:
+        max-parallel: 4
+        matrix:
+          runs-on: [windows-latest, windows-2025, windows-2022, windows-2019]
+          include:
+            - runs-on: windows-latest
+              service-key: SERVICE_KEY_WIN1
+            - runs-on: windows-2025
+              service-key: SERVICE_KEY_WIN2
+            - runs-on: windows-2022
+              service-key: SERVICE_KEY_WIN3
+            - runs-on: windows-2019
+              service-key: SERVICE_KEY_WIN4
+      runs-on: ${{ matrix.runs-on }}
       steps:
         - uses: actions/checkout@v4
 
@@ -63,7 +76,7 @@ jobs:
 
         - uses: ./.github/actions/test
           with:
-            service-key: ${{ secrets.SERVICE_KEY_WIN1 }}
+            service-key: ${{ secrets[matrix.service-key] }}
   
         - name: Access a secure resource
           shell: powershell
