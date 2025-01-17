@@ -28,3 +28,16 @@ act -j test -s SERVICE_KEY --container-options "--cap-add NET_ADMIN --device /de
 ```
 
 It'll ask for `SERVICE_KEY` value interactively.
+
+# How To Release
+
+When releasing a new tag (`v1.4` for example) we also have to update the latest major version (`v1` in this case)
+to point to it.
+Example steps:
+
+```
+git tag v1.4
+git tag v1 -f
+git push origin v1 v1.4 -f
+gh release create v1.4 --generate-notes --verify-tag
+```
