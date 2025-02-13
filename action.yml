@@ -7,6 +7,14 @@ inputs:
   service-key:
     description: 'Twingate Service Key'
     required: true
+  initial-wait-time:
+    description: 'Initial wait time in seconds before retrying Twingate connection. Defaults to 5.'
+    required: false
+    default: '5'
+  max-retries:
+    description: 'Maximum number of retry attempts if the Twingate service fails to connect. Defaults to 5.'
+    required: false
+    default: '5'
 runs:
   using: "composite"
   steps:
@@ -31,8 +39,8 @@ runs:
       shell: bash
       run: |
         echo '${{ inputs.service-key }}' | sudo twingate setup --headless -
-        MAX_RETRIES=5
-        WAIT_TIME=5
+        MAX_RETRIES=${{ inputs.max-retries }}
+        WAIT_TIME=${{ inputs.initial-wait-time }}
         n=0
 
         while [ $n -lt $MAX_RETRIES ]; do
