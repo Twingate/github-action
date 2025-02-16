@@ -94,7 +94,7 @@ runs:
             
             if [ $ELAPSED_TIME -ge $TIMEOUT ]; then
               echo "❌ Timeout reached after $TIMEOUT seconds"
-              echo "Last verification failed. Expected: ${{ expected-outbound-ips }}"
+              echo "Last verification failed. Expected: ${{ inputs.expected-outbound-ips }}"
               exit 1
             fi
             
