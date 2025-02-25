@@ -7,6 +7,18 @@ inputs:
   service-key:
     description: 'Twingate Service Key'
     required: true
+  enable-verification:
+    description: 'Set to true to verify that the Twingate connection is active after setup'
+    required: false
+    default: 'false'
+  verification-timeout-seconds:
+    description: 'Timeout duration (in seconds) for verifying the Twingate connection. Only used if `enable-verification: true`. Default is 60 seconds.'
+    required: false
+    default: '60'
+  expected-outbound-ips:
+    description: 'Comma-separated list of outbound IPs expected after successful Twingate connection verification.'
+    required: false
+    default: ''
 runs:
   using: "composite"
   steps:
@@ -66,6 +78,38 @@ runs:
           echo "Twingate service failed to connect."
           exit 1
         fi
+
+    - name: Verify Twingate Connection (Linux)
+      if: runner.os == 'Linux' && inputs.enable-verification == 'true'
+      shell: bash
+      run: |
+        sudo cat /etc/resolv.conf
+        START_TIME=$(date +%s)
+        TIMEOUT=${{ inputs.verification-timeout-seconds }}
+        # Remove 's' from the timeout value if present
+        TIMEOUT=${TIMEOUT%s}
+        
+        while true; do
+          CURRENT_TIME=$(date +%s)
+          ELAPSED_TIME=$((CURRENT_TIME - START_TIME))
+          
+          if [ $ELAPSED_TIME -ge $TIMEOUT ]; then
+            echo "❌ Timeout reached after $TIMEOUT seconds"
+            echo "Last verification failed. Expected: ${{ inputs.expected-outbound-ips }}"
+            exit 1
+          fi
+          
+          OUTBOUND_IP=$(curl -s ifconfig.io)
+          echo "[$ELAPSED_TIME/$TIMEOUT seconds] Current outbound IP: $OUTBOUND_IP"
+
+          echo "${{ inputs.expected-outbound-ips }}" | tr ',' '\n' | grep -qw "$OUTBOUND_IP" && { echo "✅ Verified"; exit 0; }
+          
+          echo "❌ IP verification failed"
+          echo "Expected: ${{ inputs.expected-outbound-ips }}"
+          echo "Got: $OUTBOUND_IP"
+          echo "Retrying in 5 seconds..."
+          sleep 5
+        done
 
     - name: Install and Start Twingate (Windows)
       if: runner.os == 'Windows'
