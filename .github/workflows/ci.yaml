@@ -54,7 +54,7 @@ jobs:
         - run: cat /run/systemd/resolve/resolv.conf
 
         - run: |
-            echo "nameserver 100.95.0.251\nnameserver 100.95.0.252\nnameserver 100.95.0.253\n# Too many DNS servers configured, the following entries may be ignored.\nnameserver 100.95.0.254\nnameserver 168.63.129.16\nsearch gpq2x2ivaaoebfs5ykq4ww3pqb.bx.internal.cloudapp.net" > /run/systemd/resolve/resolv1.conf
+            sudo echo "nameserver 100.95.0.251\nnameserver 100.95.0.252\nnameserver 100.95.0.253\n# Too many DNS servers configured, the following entries may be ignored.\nnameserver 100.95.0.254\nnameserver 168.63.129.16\nsearch gpq2x2ivaaoebfs5ykq4ww3pqb.bx.internal.cloudapp.net" > /run/systemd/resolve/resolv1.conf
 
         - run: |
             sudo ln -sf /run/systemd/resolve/resolv1.conf /run/systemd/resolve/resolv.conf
