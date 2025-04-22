@@ -51,6 +51,8 @@ jobs:
 
         - run: cat /etc/resolv.conf
 
+        - run: cat /run/systemd/resolve/resolv.conf
+
         - name: Access a secure resource
           env:
             TEST_URL: http://business.prod.beamreachinc.int/
@@ -68,7 +70,7 @@ jobs:
           uses: docker://alpine:latest
           with:
             entrypoint: /bin/sh
-            args: -c "apk update && apk add curl && cat /etc/resolv.conf && curl -v http://business.prod.beamreachinc.int/"
+            args: -c "sed -i 's/^nameserver 168.63.129.16/#nameserver 168.63.129.16/' /etc/resolv.conf && apk update && apk add curl && cat /etc/resolv.conf && curl -v http://business.prod.beamreachinc.int/"
 
         - name: Print client logs
           if: always()
