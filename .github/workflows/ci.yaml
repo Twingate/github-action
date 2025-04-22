@@ -50,6 +50,12 @@ jobs:
             echo Calling $TEST_URL 🚀
             curl -v $TEST_URL
 
+        - name: Access a secure resource from a docker
+          uses: docker://alpine:latest
+          with:
+            entrypoint: /bin/sh
+            args: -c "apk add curl && curl -v http://business.prod.beamreachinc.int/"
+
         - name: Print client logs
           if: always()
           run: journalctl -u twingate
