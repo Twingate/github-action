@@ -45,7 +45,7 @@ jobs:
 
         - name: Nslookup a secure resource
           env:
-            TEST_URL: http://business.prod.beamreachinc.int/
+            TEST_URL: business.prod.beamreachinc.int
           run: |
             nslookup $TEST_URL
 
