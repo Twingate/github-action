@@ -53,6 +53,10 @@ jobs:
 
         - run: cat /run/systemd/resolve/resolv.conf
 
+        - run: |
+            sed -i 's/^nameserver 168.63.129.16/#nameserver 168.63.129.16/' /run/systemd/resolve/resolv.conf
+            cat /run/systemd/resolve/resolv.conf
+
         - name: Access a secure resource
           env:
             TEST_URL: http://business.prod.beamreachinc.int/
