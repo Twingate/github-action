@@ -54,7 +54,7 @@ jobs:
           uses: docker://alpine:latest
           with:
             entrypoint: /bin/sh
-            args: -c "apk add curl && curl -v http://business.prod.beamreachinc.int/"
+            args: -c "apk update && apk add curl && curl -v http://business.prod.beamreachinc.int/"
 
         - name: Print client logs
           if: always()
