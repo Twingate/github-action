@@ -42,7 +42,13 @@ jobs:
 
         - name: (optional) Twingate status
           run: twingate status
-            
+
+        - name: Nslookup a secure resource
+          env:
+            TEST_URL: http://business.prod.beamreachinc.int/
+          run: |
+            nslookup $TEST_URL
+
         - name: Access a secure resource
           env:
             TEST_URL: http://business.prod.beamreachinc.int/
@@ -50,11 +56,11 @@ jobs:
             echo Calling $TEST_URL 🚀
             curl -v $TEST_URL
 
-        - name: Install proxy
-          run: |
-            echo "Installing proxy..."
-            sudo apt-get install -y tinyproxy
-            cat /etc/tinyproxy/tinyproxy.conf
+        # - name: Install proxy
+        #   run: |
+        #     echo "Installing proxy..."
+        #     sudo apt-get install -y tinyproxy
+        #     cat /etc/tinyproxy/tinyproxy.conf
 
         - name: Access a secure resource from a docker
           uses: docker://alpine:latest
