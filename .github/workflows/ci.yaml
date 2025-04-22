@@ -50,11 +50,17 @@ jobs:
             echo Calling $TEST_URL 🚀
             curl -v $TEST_URL
 
+        - name: Install proxy
+          run: |
+            echo "Installing proxy..."
+            sudo apt-get install -y tinyproxy
+            cat /etc/tinyproxy/tinyproxy.conf
+
         - name: Access a secure resource from a docker
           uses: docker://alpine:latest
           with:
             entrypoint: /bin/sh
-            args: -c "apk update && apk add curl && curl -v http://business.prod.beamreachinc.int/"
+            args: -c "apk update && apk add curl && cat /etc/resolv.conf && curl -v http://business.prod.beamreachinc.int/"
 
         - name: Print client logs
           if: always()
