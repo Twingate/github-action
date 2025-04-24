@@ -7,6 +7,10 @@ inputs:
   service-key:
     description: 'Twingate Service Key'
     required: true
+  debug:
+    description: 'Enable debug output'
+    required: false
+    default: "false"
 runs:
   using: "composite"
   steps:
@@ -48,11 +52,15 @@ runs:
 
           if [ "$status" = "online" ]; then
             echo "Twingate service is connected."
-            twingate resources
+            if [ "${{ inputs.debug }}" != "false" ]; then
+              twingate resources
+            fi
             break
           else
             twingate stop
-            journalctl -u twingate --no-pager
+            if [ "${{ inputs.debug }}" != "false" ]; then
+              journalctl -u twingate --no-pager
+            fi
           fi
 
           # Increment the retry counter and wait time
