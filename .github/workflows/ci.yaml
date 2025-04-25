@@ -49,13 +49,9 @@ jobs:
           run: |
             nslookup $TEST_URL
 
-        - run: cat /etc/resolv.conf
-
         - run: cat /run/systemd/resolve/resolv.conf
 
         - run: resolvectl status
-
-        - run: cat /run/systemd/resolve/resolv.conf
 
         - name: Access a secure resource
           env:
