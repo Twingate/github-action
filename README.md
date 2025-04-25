@@ -46,7 +46,7 @@ gh release create v1.4 --generate-notes --verify-tag
 
 ## Actions running docker steps that require access to a Twingate Resource
 
-When runnign steps that run inside a docker container you'll need to override the container's `resolv.conf` 
+When running steps that run inside a docker container you'll need to override the container's `resolv.conf` 
 by running the following inside the container:
 
 ```
