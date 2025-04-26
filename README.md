@@ -50,7 +50,7 @@ When running steps that run inside a docker container you'll need to override th
 to remove the `168.63.129.16` and search statement by running the following commands inside the container:
 
 ```
-sed '/^nameserver 168.63.129.16$/d; /^search/d' /etc/resolv.conf > /tmp/resolv.conf && cat /tmp/resolv.conf > /etc/resolv.conf
+sed '/^nameserver 168.63.129.16$/d; /^search/d' /etc/resolv.conf | cat > /etc/resolv.conf
 ```
 
 ### Technical details
