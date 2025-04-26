@@ -47,10 +47,10 @@ gh release create v1.4 --generate-notes --verify-tag
 ## Actions running docker steps that require access to a Twingate Resource
 
 When running steps that run inside a docker container you'll need to override the container's `resolv.conf` 
-by running the following inside the container:
+to remove the `168.63.129.16` and search statement by running the following commands inside the container:
 
 ```
-echo "nameserver 100.95.0.251\nnameserver 100.95.0.252\nnameserver 100.95.0.253\nnameserver 100.95.0.254" > /etc/resolv.conf
+sed '/^nameserver 168.63.129.16$/d; /^search/d' /etc/resolv.conf > /tmp/resolv.conf && cat /tmp/resolv.conf > /etc/resolv.conf
 ```
 
 ### Technical details
