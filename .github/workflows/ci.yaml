@@ -65,7 +65,14 @@ jobs:
           id: test_docker_curl
           with:
             entrypoint: /bin/sh
-            args: -c "sed '/^nameserver 168.63.129.16$/d; /^search/d' /etc/resolv.conf > /tmp/resolv.conf && cat /tmp/resolv.conf > /etc/resolv.conf && cat /etc/resolv.conf && apk update && apk add curl && curl -v http://business.prod.beamreachinc.int/"
+            args: |
+              -c "
+                sed '/^nameserver 168.63.129.16$/d; /^search/d' /etc/resolv.conf > /tmp/resolv.conf && 
+                cat /tmp/resolv.conf > /etc/resolv.conf && 
+                cat /etc/resolv.conf && 
+                apk update && apk add curl && 
+                curl -v http://business.prod.beamreachinc.int/
+              "
 
         - name: Print client logs
           if: always()
