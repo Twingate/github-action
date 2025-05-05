@@ -121,5 +121,10 @@ jobs:
           if: always()
           run: Get-Content "$env:PROGRAMDATA\Twingate\logs\twingate.service.log"
 
+        - name: Print installer log
+          shell: powershell
+          if: always()
+          run: Get-Content "install.log"
+
         - shell: powershell
           run: Write-Host "SUCCESS!!! 🤩 This job's status is ${{ job.status }}."
