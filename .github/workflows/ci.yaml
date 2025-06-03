@@ -84,7 +84,7 @@ jobs:
       strategy:
         max-parallel: 4
         matrix:
-          runs-on: [windows-latest, windows-2025, windows-2022, windows-2019]
+          runs-on: [windows-latest, windows-2025, windows-2022]
           include:
             - runs-on: windows-latest
               service-key: SERVICE_KEY_WIN1
@@ -92,8 +92,6 @@ jobs:
               service-key: SERVICE_KEY_WIN2
             - runs-on: windows-2022
               service-key: SERVICE_KEY_WIN3
-            - runs-on: windows-2019
-              service-key: SERVICE_KEY_WIN4
       runs-on: ${{ matrix.runs-on }}
       steps:
         - uses: actions/checkout@v4
