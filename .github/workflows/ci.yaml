@@ -94,7 +94,7 @@ jobs:
             - runs-on: windows-2022
               service-key: SERVICE_KEY_WIN3
       runs-on: ${{ matrix.runs-on }}
-      #timeout-minutes: 6
+      timeout-minutes: 6
       steps:
         - uses: actions/checkout@v4
 
@@ -108,16 +108,13 @@ jobs:
           with:
             service-key: ${{ secrets[matrix.service-key] }}
 
-        - name: Open live SSH session (Windows)
-          uses: mxschmitt/action-tmate@v3
-
         - name: Access a secure resource
           shell: powershell
           env:
             TEST_URL: http://business.prod.beamreachinc.int/
           run: |
             Write-Host "Calling $env:TEST_URL 🚀"
-            Invoke-WebRequest -Uri $env:TEST_URL -Verbose
+            Invoke-WebRequest -Uri $env:TEST_URL -Verbose -TimeoutSec 10 -UseBasicParsing
 
         - name: Print client logs
           shell: powershell
