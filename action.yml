@@ -96,6 +96,11 @@ runs:
       if: runner.os == 'macOS'
       shell: bash
       run: |
-        echo "testing 123"
-        brew install docker colima
+        echo "::group::Updating Homebrew"
+        brew update
+        echo "::endgroup::"
+
+        echo "::group::Installing Docker and Colima"
+        brew install docker docker-compose colima
         colima start
+        echo "::endgroup::"
