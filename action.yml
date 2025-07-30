@@ -92,15 +92,14 @@ runs:
           Start-Sleep -Seconds 14
           Get-Service twingate.service
 
+    - name: Setup Docker on macOS
+      uses: douglascamata/setup-docker-macos-action@v1
+      if: runner.os == 'macOS'
+      with:
+        version: 'latest'
+
     - name: Install and Start Twingate (MacOS)
       if: runner.os == 'macOS'
       shell: bash
       run: |
-        echo "::group::Updating Homebrew"
-        brew update
-        echo "::endgroup::"
-
-        echo "::group::Installing Docker and Colima"
-        brew install docker docker-compose colima
-        colima start
-        echo "::endgroup::"
+        docker run -d -p 80:80 nginx:latest
