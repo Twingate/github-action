@@ -15,7 +15,7 @@ runs:
   using: "composite"
   steps:
     - name: Error if unsupported runner.os
-      if: runner.os != 'Linux' && runner.os != 'Windows'
+      if: runner.os != 'Linux' && runner.os != 'Windows' && runner.os != 'macOS'
       shell: bash
       run: |
         echo "Unsupported Runner OS: ${{ runner.os }}"
