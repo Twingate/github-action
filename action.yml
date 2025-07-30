@@ -101,7 +101,7 @@ runs:
         echo "::endgroup::"
 
         echo "::group::Installing Container"
-        brew install container docker docker-compose
+        brew install container docker
         container system start --enable-kernel-install
         echo "::endgroup::"
 
