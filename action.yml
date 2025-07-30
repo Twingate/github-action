@@ -95,8 +95,6 @@ runs:
     - name: Setup Docker on macOS
       uses: douglascamata/setup-docker-macos-action@v1
       if: runner.os == 'macOS'
-      with:
-        version: 'latest'
 
     - name: Install and Start Twingate (MacOS)
       if: runner.os == 'macOS'
