@@ -103,9 +103,9 @@ runs:
         echo "::group::Installing Docker and Container"
         brew install container docker
         echo "::endgroup::"
-
+  
         echo "::group::Starting Container"
-        container system start --disable-kernel-install
+        container system start --enable-kernel-install
         echo "::endgroup::"
 
         echo "::group::Running Docker"
