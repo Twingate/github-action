@@ -98,4 +98,4 @@ runs:
       run: |
         echo "testing 123"
         brew install docker
-        collima start
+        colima start
