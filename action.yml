@@ -110,8 +110,8 @@ runs:
 
         echo "::group::Running Container"
         mkdir -p /etc/twingate
-        echo '${{ inputs.service-key }}' > /etc/twingate/service_key.json
-        container run -d -v /etc/twingate/service_key.json:/etc/twingate/service_key.json twingate/client:latest
+        echo '${{ inputs.service-key }}' > key.json
+        container run -d -v $(pwd)/key.json:/etc/twingate/service_key.json twingate/client:latest
         echo "::endgroup::"
 
         echo "::group::Checking Container Logs"
