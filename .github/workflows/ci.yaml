@@ -7,23 +7,135 @@ on:
             - 'main'
 
 jobs:
-    test-linux:
+    # test-linux:
+    #   strategy:
+    #     max-parallel: 4
+    #     matrix:
+    #       runs-on: [ubuntu-latest, ubuntu-24.04, ubuntu-22.04, ubuntu-24.04-arm, ubuntu-22.04-arm]
+    #       include:
+    #         - runs-on: ubuntu-latest
+    #           service-key: SERVICE_KEY
+    #         - runs-on: ubuntu-24.04
+    #           service-key: SERVICE_KEY1
+    #         - runs-on: ubuntu-22.04
+    #           service-key: SERVICE_KEY2
+    #         - runs-on: ubuntu-24.04-arm
+    #           service-key: SERVICE_KEY_ARM1
+    #         - runs-on: ubuntu-22.04-arm
+    #           service-key: SERVICE_KEY_ARM2
+
+    #   runs-on: ${{ matrix.runs-on }}
+    #   timeout-minutes: 3
+    #   steps:
+    #     - uses: actions/checkout@v4
+
+    #     - name: Move local action to folder where it can be tested
+    #       shell: bash
+    #       run: |
+    #         mkdir -p .github/actions/test
+    #         cp action.yml .github/actions/test/action.yml
+
+    #     - uses: ./.github/actions/test
+    #       with:
+    #         service-key: ${{ secrets[matrix.service-key] }}
+
+    #     - name: Twingate logs
+    #       run: journalctl -u twingate
+
+    #     - name: Twingate status
+    #       run: twingate status
+
+    #     - name: Nslookup a secure resource
+    #       env:
+    #         TEST_URL: business.prod.beamreachinc.int
+    #       run: |
+    #         nslookup $TEST_URL
+
+    #     - run: cat /run/systemd/resolve/resolv.conf
+
+    #     - run: resolvectl status
+
+    #     - name: Access a secure resource
+    #       env:
+    #         TEST_URL: http://business.prod.beamreachinc.int/
+    #       run: |
+    #         echo Calling $TEST_URL 🚀
+    #         curl -v $TEST_URL
+
+    #     - name: Access a secure resource from a docker
+    #       uses: docker://alpine:latest
+    #       id: test_docker_curl
+    #       with:
+    #         entrypoint: /bin/sh
+    #         args: |
+    #           -c "
+    #             sed '/^nameserver 168.63.129.16$/d; /^search/d' /etc/resolv.conf > /tmp/resolv.conf && 
+    #             cat /tmp/resolv.conf > /etc/resolv.conf && 
+    #             cat /etc/resolv.conf && 
+    #             apk update && apk add curl && 
+    #             curl -v http://business.prod.beamreachinc.int/
+    #           "
+
+    #     - name: Print client logs
+    #       if: always()
+    #       run: journalctl -u twingate
+
+    #     - run: echo "SUCCESS!!! 🤩 This job's status is ${{ job.status }}."
+
+    # test-windows:
+    #   strategy:
+    #     max-parallel: 4
+    #     matrix:
+    #       runs-on: [windows-latest, windows-2025, windows-2022]
+    #       include:
+    #         - runs-on: windows-latest
+    #           service-key: SERVICE_KEY_WIN1
+    #         - runs-on: windows-2025
+    #           service-key: SERVICE_KEY_WIN2
+    #         - runs-on: windows-2022
+    #           service-key: SERVICE_KEY_WIN3
+    #   runs-on: ${{ matrix.runs-on }}
+    #   timeout-minutes: 6
+    #   steps:
+    #     - uses: actions/checkout@v4
+
+    #     - name: Move local action to folder where it can be tested
+    #       shell: powershell
+    #       run: |
+    #         New-Item -Path ".github/actions/test" -ItemType Directory -Force
+    #         Copy-Item -Path "action.yml" -Destination ".github/actions/test/action.yml" -Force
+
+    #     - uses: ./.github/actions/test
+    #       with:
+    #         service-key: ${{ secrets[matrix.service-key] }}
+
+    #     - name: Access a secure resource
+    #       shell: powershell
+    #       env:
+    #         TEST_URL: http://business.prod.beamreachinc.int/
+    #       run: |
+    #         Write-Host "Calling $env:TEST_URL 🚀"
+    #         Invoke-WebRequest -Uri $env:TEST_URL -Verbose -TimeoutSec 10 -UseBasicParsing
+
+    #     - name: Print client logs
+    #       shell: powershell
+    #       if: always()
+    #       run: Get-Content "$env:PROGRAMDATA\Twingate\logs\twingate.service.log"
+
+    #     - name: Print installer log
+    #       shell: powershell
+    #       if: always()
+    #       run: Get-Content "install.log"
+
+    #     - shell: powershell
+    #       run: Write-Host "SUCCESS!!! 🤩 This job's status is ${{ job.status }}."
+
+    test-macos:
       strategy:
         max-parallel: 4
         matrix:
-          # runs-on: [ubuntu-latest, ubuntu-24.04, ubuntu-22.04, ubuntu-24.04-arm, ubuntu-22.04-arm, macos-15]
           runs-on: [macos-15]
           include:
-            - runs-on: ubuntu-latest
-              service-key: SERVICE_KEY
-            - runs-on: ubuntu-24.04
-              service-key: SERVICE_KEY1
-            - runs-on: ubuntu-22.04
-              service-key: SERVICE_KEY2
-            - runs-on: ubuntu-24.04-arm
-              service-key: SERVICE_KEY_ARM1
-            - runs-on: ubuntu-22.04-arm
-              service-key: SERVICE_KEY_ARM2
             - runs-on: macos-15
               service-key: SERVICE_KEY
 
@@ -42,21 +154,11 @@ jobs:
           with:
             service-key: ${{ secrets[matrix.service-key] }}
 
-        - name: Twingate logs
-          run: journalctl -u twingate
-
-        - name: Twingate status
-          run: twingate status
-
         - name: Nslookup a secure resource
           env:
             TEST_URL: business.prod.beamreachinc.int
           run: |
             nslookup $TEST_URL
-
-        - run: cat /run/systemd/resolve/resolv.conf
-
-        - run: resolvectl status
 
         - name: Access a secure resource
           env:
@@ -65,70 +167,6 @@ jobs:
             echo Calling $TEST_URL 🚀
             curl -v $TEST_URL
 
-        - name: Access a secure resource from a docker
-          uses: docker://alpine:latest
-          id: test_docker_curl
-          with:
-            entrypoint: /bin/sh
-            args: |
-              -c "
-                sed '/^nameserver 168.63.129.16$/d; /^search/d' /etc/resolv.conf > /tmp/resolv.conf && 
-                cat /tmp/resolv.conf > /etc/resolv.conf && 
-                cat /etc/resolv.conf && 
-                apk update && apk add curl && 
-                curl -v http://business.prod.beamreachinc.int/
-              "
-
-        - name: Print client logs
-          if: always()
-          run: journalctl -u twingate
-
         - run: echo "SUCCESS!!! 🤩 This job's status is ${{ job.status }}."
 
-    test-windows:
-      strategy:
-        max-parallel: 4
-        matrix:
-          runs-on: [windows-latest, windows-2025, windows-2022]
-          include:
-            - runs-on: windows-latest
-              service-key: SERVICE_KEY_WIN1
-            - runs-on: windows-2025
-              service-key: SERVICE_KEY_WIN2
-            - runs-on: windows-2022
-              service-key: SERVICE_KEY_WIN3
-      runs-on: ${{ matrix.runs-on }}
-      timeout-minutes: 6
-      steps:
-        - uses: actions/checkout@v4
-
-        - name: Move local action to folder where it can be tested
-          shell: powershell
-          run: |
-            New-Item -Path ".github/actions/test" -ItemType Directory -Force
-            Copy-Item -Path "action.yml" -Destination ".github/actions/test/action.yml" -Force
-
-        - uses: ./.github/actions/test
-          with:
-            service-key: ${{ secrets[matrix.service-key] }}
-
-        - name: Access a secure resource
-          shell: powershell
-          env:
-            TEST_URL: http://business.prod.beamreachinc.int/
-          run: |
-            Write-Host "Calling $env:TEST_URL 🚀"
-            Invoke-WebRequest -Uri $env:TEST_URL -Verbose -TimeoutSec 10 -UseBasicParsing
-
-        - name: Print client logs
-          shell: powershell
-          if: always()
-          run: Get-Content "$env:PROGRAMDATA\Twingate\logs\twingate.service.log"
-
-        - name: Print installer log
-          shell: powershell
-          if: always()
-          run: Get-Content "install.log"
-
-        - shell: powershell
-          run: Write-Host "SUCCESS!!! 🤩 This job's status is ${{ job.status }}."
+          
