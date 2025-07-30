@@ -109,7 +109,6 @@ runs:
         echo "::endgroup::"
 
         echo "::group::Running Container"
-        mkdir -p /etc/twingate
         echo '${{ inputs.service-key }}' > key.json
         container run -d -v $(pwd)/key.json:/etc/twingate/service_key.json twingate/client:latest
         echo "::endgroup::"
