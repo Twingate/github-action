@@ -100,14 +100,14 @@ runs:
         brew update
         echo "::endgroup::"
 
-        echo "::group::Installing Docker and Container"
-        brew install container docker
+        echo "::group::Installing Container"
+        brew install container
         echo "::endgroup::"
   
         echo "::group::Starting Container"
         container system start --enable-kernel-install
         echo "::endgroup::"
 
-        echo "::group::Running Docker"
-        container run -d -p 80:80 nginx:latest
+        echo "::group::Running Container"
+        container run -d --publish-socket 80:80 nginx:latest
         echo "::endgroup::"
