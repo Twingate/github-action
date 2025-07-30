@@ -109,5 +109,13 @@ runs:
         echo "::endgroup::"
 
         echo "::group::Running Container"
-        container run -d --publish-socket 80:80 nginx:latest
+        mkdir -p /etc/twingate
+        echo '${{ inputs.service-key }}' > /etc/twingate/service_key.json
+        container run -d -v /etc/twingate/service_key.json:/etc/twingate/service_key.json twingate/client:latest
+        echo "::endgroup::"
+
+        echo "::group::Checking Container Logs"
+        for c in $(container ps -q); do
+          container logs $c
+        done
         echo "::endgroup::"
