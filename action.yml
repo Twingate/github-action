@@ -109,5 +109,5 @@ runs:
         echo "::endgroup::"
 
         echo "::group::Running Docker"
-        docker run -d -p 80:80 nginx:latest
+        container run -d -p 80:80 nginx:latest
         echo "::endgroup::"
