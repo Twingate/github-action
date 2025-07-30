@@ -97,4 +97,5 @@ runs:
       shell: bash
       run: |
         echo "testing 123"
-        docker version
+        brew install collima
+        collima start
