@@ -91,3 +91,9 @@ runs:
 
           Start-Sleep -Seconds 14
           Get-Service twingate.service
+
+    - name: Install and Start Twingate (MacOS)
+      if: runner.os == 'macOS'
+      shell: bash
+      run: |
+        echo "testing 123"
