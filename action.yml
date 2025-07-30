@@ -97,5 +97,5 @@ runs:
       shell: bash
       run: |
         echo "testing 123"
-        brew install colima
+        brew install docker colima
         colima start
