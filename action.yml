@@ -25,10 +25,11 @@ runs:
       if: runner.os == 'Linux'
       shell: bash
       run: |
+        ps aux | grep '[a]pt'
+        sudo service packagekit restart
         sudo apt -o DPkg::Lock::Timeout=-1 update
         echo "deb [trusted=yes] https://packages.twingate.com/apt/ /" | sudo tee /etc/apt/sources.list.d/twingate.list
         sudo apt-get update -o DPkg::Lock::Timeout=-1 -o Dir::Etc::sourcelist="sources.list.d/twingate.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
-        sudo service packagekit restart
         sudo apt -o DPkg::Lock::Timeout=-1 install -yq twingate
     
     - name: Setup and start Twingate (Linux)
