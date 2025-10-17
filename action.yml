@@ -25,7 +25,7 @@ runs:
       if: runner.os == 'Linux'
       shell: bash
       run: |
-        sudo apt update
+        sudo apt -o DPkg::Lock::Timeout=90 update
         echo "deb [trusted=yes] https://packages.twingate.com/apt/ /" | sudo tee /etc/apt/sources.list.d/twingate.list
         sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/twingate.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
         sudo apt install -yq twingate
