@@ -21,17 +21,20 @@ runs:
         echo "Unsupported Runner OS: ${{ runner.os }}"
         exit 1
 
+    - name: Update System (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        sudo apt -o DPkg::Lock::Timeout=-1 update
+        echo "deb [trusted=yes] https://packages.twingate.com/apt/ /" | sudo tee /etc/apt/sources.list.d/twingate.list
+        sudo apt-get update -o DPkg::Lock::Timeout=-1 -o Dir::Etc::sourcelist="sources.list.d/twingate.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
     - name: Install Twingate (Linux)
       if: runner.os == 'Linux'
       shell: bash
       run: |
         ps aux | grep '[a]pt'
         sudo service packagekit restart
-        sudo apt -o DPkg::Lock::Timeout=-1 update
-        echo "deb [trusted=yes] https://packages.twingate.com/apt/ /" | sudo tee /etc/apt/sources.list.d/twingate.list
-        sudo apt-get update -o DPkg::Lock::Timeout=-1 -o Dir::Etc::sourcelist="sources.list.d/twingate.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
         sudo apt -o DPkg::Lock::Timeout=-1 install -yq twingate
-    
     - name: Setup and start Twingate (Linux)
       if: runner.os == 'Linux'
       shell: bash
