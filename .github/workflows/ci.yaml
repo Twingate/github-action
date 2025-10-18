@@ -134,9 +134,9 @@ jobs:
       strategy:
         max-parallel: 4
         matrix:
-          runs-on: [macos-15]
+          runs-on: [macos-26]
           include:
-            - runs-on: macos-15
+            - runs-on: macos-26
               service-key: SERVICE_KEY
 
       runs-on: ${{ matrix.runs-on }}
