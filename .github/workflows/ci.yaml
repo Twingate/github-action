@@ -140,7 +140,7 @@ jobs:
               service-key: SERVICE_KEY
 
       runs-on: ${{ matrix.runs-on }}
-      timeout-minutes: 3
+      timeout-minutes: 5
       steps:
         - uses: actions/checkout@v4
 
