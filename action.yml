@@ -25,10 +25,25 @@ runs:
       if: runner.os == 'Linux'
       shell: bash
       run: |
-        sudo apt update
+        # Add Twingate repository
         echo "deb [trusted=yes] https://packages.twingate.com/apt/ /" | sudo tee /etc/apt/sources.list.d/twingate.list
-        sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/twingate.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
-        sudo apt install -yq twingate
+    
+        # Retry apt-get update up to 5 times with exponential backoff
+        max_retries=5
+        delay=5
+        for i in $(seq 1 $max_retries); do
+          if sudo apt-get update; then
+            echo "apt-get update succeeded"
+            break
+          else
+            echo "apt-get update failed, retrying ($i/$max_retries) in $delay seconds..."
+            sleep $delay
+            delay=$((delay * 2))  # exponential backoff
+          fi
+        done
+    
+        # Install Twingate
+        sudo apt-get -o DPkg::Lock::Timeout=60 install -y twingate
     
     - name: Setup and start Twingate (Linux)
       if: runner.os == 'Linux'
