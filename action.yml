@@ -43,7 +43,7 @@ runs:
         done
     
         # Install Twingate
-        sudo apt-get -o DPkg::Lock::Timeout=60 install -y twingate
+        sudo apt-get -yq -o DPkg::Lock::Timeout=60 install twingate
     
     - name: Setup and start Twingate (Linux)
       if: runner.os == 'Linux'
