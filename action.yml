@@ -11,6 +11,10 @@ inputs:
     description: 'Enable debug output'
     required: false
     default: "false"
+  cache:
+    description: 'Enable caching of Twingate .deb packages to speed up installation'
+    required: false
+    default: "true"
 runs:
   using: "composite"
   steps:
@@ -21,8 +25,33 @@ runs:
         echo "Unsupported Runner OS: ${{ runner.os }}"
         exit 1
 
-    - name: Install Twingate (Linux)
-      if: runner.os == 'Linux'
+    - name: Cache Twingate package
+      if: runner.os == 'Linux' && inputs.cache == 'true'
+      uses: actions/cache@v4
+      id: cache-twingate
+      with:
+        path: /tmp/twingate-cache
+        key: twingate-deb-${{ runner.os }}-${{ runner.arch }}
+
+    - name: Download Twingate package (Linux)
+      if: runner.os == 'Linux' && inputs.cache == 'true' && steps.cache-twingate.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        mkdir -p /tmp/twingate-cache
+        echo "deb [trusted=yes] https://packages.twingate.com/apt/ /" | sudo tee /etc/apt/sources.list.d/twingate.list
+        sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/twingate.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
+        cd /tmp/twingate-cache
+        apt-get download twingate
+
+    - name: Install Twingate from cache (Linux)
+      if: runner.os == 'Linux' && inputs.cache == 'true'
+      shell: bash
+      run: |
+        sudo dpkg -i /tmp/twingate-cache/twingate*.deb || true
+        sudo apt-get install -f -yq
+
+    - name: Install Twingate without cache (Linux)
+      if: runner.os == 'Linux' && inputs.cache != 'true'
       shell: bash
       run: |
         sudo apt update
