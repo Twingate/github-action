@@ -27,7 +27,7 @@ runs:
 
     - name: Cache Twingate package
       if: runner.os == 'Linux' && inputs.cache == 'true'
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       id: cache-twingate
       with:
         path: /tmp/twingate-cache
