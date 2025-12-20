@@ -113,12 +113,43 @@ runs:
           exit 1
         fi
 
-    - name: Install and Start Twingate (Windows)
-      if: runner.os == 'Windows'
+    - name: Get latest Twingate version (Windows)
+      if: runner.os == 'Windows' && inputs.cache == 'true'
+      id: twingate-version-windows
+      shell: powershell
+      run: |
+          $response = Invoke-WebRequest -Uri "https://api.twingate.com/download/windows?installer=msi" -MaximumRedirection 0 -ErrorAction SilentlyContinue
+          $location = $response.Headers.Location
+          if ($location -match '/versions/([^/]+)/') {
+            $version = $matches[1]
+            echo "version=$version" >> $env:GITHUB_OUTPUT
+            Write-Host "Latest Twingate version: $version"
+          }
+
+    - name: Cache Twingate package (Windows)
+      if: runner.os == 'Windows' && inputs.cache == 'true'
+      uses: actions/cache@v5
+      id: cache-twingate-windows
+      with:
+        path: twingate_client.msi
+        key: twingate-msi-${{ runner.os }}-${{ runner.arch }}-${{ steps.twingate-version-windows.outputs.version }}
+
+    - name: Download Twingate installer (Windows)
+      if: runner.os == 'Windows' && inputs.cache == 'true' && steps.cache-twingate-windows.outputs.cache-hit != 'true'
       shell: powershell
       run: |
           Invoke-WebRequest https://api.twingate.com/download/windows?installer=msi -OutFile .\twingate_client.msi
 
+    - name: Download Twingate installer without cache (Windows)
+      if: runner.os == 'Windows' && inputs.cache != 'true'
+      shell: powershell
+      run: |
+          Invoke-WebRequest https://api.twingate.com/download/windows?installer=msi -OutFile .\twingate_client.msi
+
+    - name: Install and Start Twingate (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
           Set-Content .\key.json  '${{ inputs.service-key }}'
           $key_path = (Get-Item .\key.json | Resolve-Path).ProviderPath
 
