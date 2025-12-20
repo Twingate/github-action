@@ -25,13 +25,22 @@ runs:
         echo "Unsupported Runner OS: ${{ runner.os }}"
         exit 1
 
+    - name: Get latest Twingate version
+      if: runner.os == 'Linux' && inputs.cache == 'true'
+      id: twingate-version
+      shell: bash
+      run: |
+        VERSION=$(curl -s https://packages.twingate.com/apt/Packages | awk '/^Version:/ {print $2}' | sort -V | tail -1)
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Latest Twingate version: $VERSION"
+
     - name: Cache Twingate package
       if: runner.os == 'Linux' && inputs.cache == 'true'
       uses: actions/cache@v5
       id: cache-twingate
       with:
         path: /tmp/twingate-cache
-        key: twingate-deb-${{ runner.os }}-${{ runner.arch }}
+        key: twingate-deb-${{ runner.os }}-${{ runner.arch }}-${{ steps.twingate-version.outputs.version }}
 
     - name: Download Twingate package (Linux)
       if: runner.os == 'Linux' && inputs.cache == 'true' && steps.cache-twingate.outputs.cache-hit != 'true'
