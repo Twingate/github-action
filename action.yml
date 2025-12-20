@@ -111,12 +111,20 @@ runs:
       id: twingate-version-windows
       shell: powershell
       run: |
-          $response = Invoke-WebRequest -Uri "https://api.twingate.com/download/windows?installer=msi" -MaximumRedirection 0 -ErrorAction SilentlyContinue
-          $location = $response.Headers.Location
-          if ($location -match '/versions/([^/]+)/') {
-            $version = $matches[1]
-            echo "version=$version" >> $env:GITHUB_OUTPUT
-            Write-Host "Latest Twingate version: $version"
+          try {
+            $response = Invoke-WebRequest -Uri "https://api.twingate.com/download/windows?installer=msi" -Method Head -MaximumRedirection 0 -ErrorAction Ignore
+            if ($response -and $response.Headers -and $response.Headers.Location) {
+              $location = $response.Headers.Location
+              if ($location -match '/versions/([^/]+)/') {
+                $version = $matches[1]
+                echo "version=$version" >> $env:GITHUB_OUTPUT
+                Write-Host "Latest Twingate version: $version"
+              }
+            } else {
+              Write-Host "Warning: Could not determine version from redirect"
+            }
+          } catch {
+            Write-Host "Warning: Error checking version - $($_.Exception.Message)"
           }
 
     - name: Cache Twingate package (Windows)
