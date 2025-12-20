@@ -43,9 +43,10 @@ runs:
         key: twingate-deb-${{ runner.os }}-${{ runner.arch }}-${{ steps.twingate-version.outputs.version }}
 
     - name: Download Twingate package (Linux)
-      if: runner.os == 'Linux' && inputs.cache == 'true' && steps.cache-twingate.outputs.cache-hit != 'true'
+      if: runner.os == 'Linux' && steps.cache-twingate.outputs.cache-hit != 'true'
       shell: bash
       run: |
+        echo "No cache - creating cache folder"
         mkdir -p /tmp/twingate-cache
         echo "deb [trusted=yes] https://packages.twingate.com/apt/ /" | sudo tee /etc/apt/sources.list.d/twingate.list
         sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/twingate.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
@@ -56,17 +57,9 @@ runs:
       if: runner.os == 'Linux' && inputs.cache == 'true'
       shell: bash
       run: |
+        echo "Installing Twingate from cache"
         sudo dpkg -i /tmp/twingate-cache/twingate*.deb || true
         sudo apt-get install -f -yq
-
-    - name: Install Twingate without cache (Linux)
-      if: runner.os == 'Linux' && inputs.cache != 'true'
-      shell: bash
-      run: |
-        sudo apt update
-        echo "deb [trusted=yes] https://packages.twingate.com/apt/ /" | sudo tee /etc/apt/sources.list.d/twingate.list
-        sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/twingate.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
-        sudo apt install -yq twingate
     
     - name: Setup and start Twingate (Linux)
       if: runner.os == 'Linux'
