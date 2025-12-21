@@ -33,6 +33,7 @@ runs:
         VERSION=$(curl -s https://packages.twingate.com/apt/Packages | awk '/^Version:/ {print $2}' | sort -V | tail -1)
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "Latest Twingate version: $VERSION"
+        echo "deb [trusted=yes] https://packages.twingate.com/apt/ /" | sudo tee /etc/apt/sources.list.d/twingate.list
 
     - uses: awalsh128/cache-apt-pkgs-action@v1.6.0
       with:
