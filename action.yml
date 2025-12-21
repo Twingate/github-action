@@ -114,11 +114,7 @@ runs:
         $uri = "https://api.twingate.com/download/windows?installer=msi"
         try {
             # Make request without following redirects
-            $response = Invoke-WebRequest `
-                -Uri $uri `
-                -Method Get `
-                -MaximumRedirection 0 `
-                -ErrorAction Stop
+            $response = Invoke-WebRequest -Uri $uri -Method Get -MaximumRedirection 0 -ErrorAction Stop
         }
         catch {
             # When MaximumRedirection = 0, PowerShell throws on 302 — grab the response anyway
@@ -132,6 +128,8 @@ runs:
          throw "Expected HTTP 302, got $($response.StatusCode)"
         }
 
+        # Extract Location header
+        $location = $response.Headers['Location']
         if (-not $location) {
           throw "Missing Location header"
         }
