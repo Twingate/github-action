@@ -112,37 +112,22 @@ runs:
       shell: powershell
       run: |
         $uri = "https://api.twingate.com/download/windows?installer=msi"
-        try {
-            # Make request without following redirects
-            $response = Invoke-WebRequest -Uri $uri -Method Get -MaximumRedirection 0 -ErrorAction Stop
-        }
-        catch {
-            # When MaximumRedirection = 0, PowerShell throws on 302 — grab the response anyway
-            $response = $_.Exception.Response
-        }
 
-        if (-not $response) {
-         throw "No HTTP response received"
-        }
-        if ($response.StatusCode -ne 302) {
-         throw "Expected HTTP 302, got $($response.StatusCode)"
-        }
+        # Follow the redirect and get the final URL
+        $response = Invoke-WebRequest -Uri $uri -Method Head -UseBasicParsing
+        $finalUrl = $response.BaseResponse.ResponseUri.AbsoluteUri
 
-        # Extract Location header
-        $location = $response.Headers['Location']
-        if (-not $location) {
-          throw "Missing Location header"
-        }
+        Write-Host "Final URL: $finalUrl"
 
         # Extract version from URL
         # Example:
         # https://binaries.twingate.com/client/windows/versions/2025.338.1789/TwingateWindowsInstaller.msi
-        if ($location -match "https://binaries.twingate.com/client/windows/versions/([^/]+)/") {
+        if ($finalUrl -match "/versions/([^/]+)/") {
           $version = $Matches[1]
           echo "version=$version" >> $env:GITHUB_OUTPUT
           Write-Host "Latest Twingate version: $version"
         } else {
-          throw "Could not parse version from Location header: $location"
+          throw "Could not parse version from URL: $finalUrl"
         }
 
     - name: Cache Twingate package (Windows)
