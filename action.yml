@@ -11,6 +11,10 @@ inputs:
     description: 'Enable debug output'
     required: false
     default: "false"
+  cache:
+    description: 'Enable caching of Twingate .deb packages to speed up installation'
+    required: false
+    default: "true"
 runs:
   using: "composite"
   steps:
@@ -21,14 +25,41 @@ runs:
         echo "Unsupported Runner OS: ${{ runner.os }}"
         exit 1
 
-    - name: Install Twingate (Linux)
-      if: runner.os == 'Linux'
+    - name: Get latest Twingate version
+      if: runner.os == 'Linux' && inputs.cache == 'true'
+      id: twingate-version
       shell: bash
       run: |
-        sudo apt update
+        VERSION=$(curl -s https://packages.twingate.com/apt/Packages | awk '/^Version:/ {print $2}' | sort -V | tail -1)
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Latest Twingate version: $VERSION"
+
+    - name: Cache Twingate package
+      if: runner.os == 'Linux' && inputs.cache == 'true'
+      uses: actions/cache@v5
+      id: cache-twingate
+      with:
+        path: /tmp/twingate-cache
+        key: twingate-deb-${{ runner.os }}-${{ runner.arch }}-${{ steps.twingate-version.outputs.version }}
+
+    - name: Download Twingate package (Linux)
+      if: runner.os == 'Linux' && steps.cache-twingate.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        echo "No cache - creating cache folder"
+        mkdir -p /tmp/twingate-cache
         echo "deb [trusted=yes] https://packages.twingate.com/apt/ /" | sudo tee /etc/apt/sources.list.d/twingate.list
         sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/twingate.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
-        sudo apt install -yq twingate
+        cd /tmp/twingate-cache
+        apt-get download twingate
+
+    - name: Install Twingate from cache (Linux)
+      if: runner.os == 'Linux' && inputs.cache == 'true'
+      shell: bash
+      run: |
+        echo "Installing Twingate from cache"
+        sudo dpkg -i /tmp/twingate-cache/twingate*.deb || true
+        sudo apt-get install -f -yq
     
     - name: Setup and start Twingate (Linux)
       if: runner.os == 'Linux'
@@ -75,12 +106,54 @@ runs:
           exit 1
         fi
 
-    - name: Install and Start Twingate (Windows)
-      if: runner.os == 'Windows'
+    - name: Get latest Twingate version (Windows)
+      if: runner.os == 'Windows' && inputs.cache == 'true'
+      id: twingate-version-windows
+      shell: powershell
+      run: |
+        $uri = "https://api.twingate.com/download/windows?installer=msi"
+
+        # Follow the redirect and get the final URL
+        $response = Invoke-WebRequest -Uri $uri -Method Head -UseBasicParsing
+        $finalUrl = $response.BaseResponse.ResponseUri.AbsoluteUri
+
+        Write-Host "Final URL: $finalUrl"
+
+        # Extract version from URL
+        # Example:
+        # https://binaries.twingate.com/client/windows/versions/2025.338.1789/TwingateWindowsInstaller.msi
+        if ($finalUrl -match "/versions/([^/]+)/") {
+          $version = $Matches[1]
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "Latest Twingate version: $version"
+        } else {
+          throw "Could not parse version from URL: $finalUrl"
+        }
+
+    - name: Cache Twingate package (Windows)
+      if: runner.os == 'Windows' && inputs.cache == 'true'
+      uses: actions/cache@v5
+      id: cache-twingate-windows
+      with:
+        path: twingate_client.msi
+        key: twingate-msi-${{ runner.os }}-${{ runner.arch }}-${{ steps.twingate-version-windows.outputs.version }}
+
+    - name: Download Twingate installer (Windows)
+      if: runner.os == 'Windows' && inputs.cache == 'true' && steps.cache-twingate-windows.outputs.cache-hit != 'true'
       shell: powershell
       run: |
           Invoke-WebRequest https://api.twingate.com/download/windows?installer=msi -OutFile .\twingate_client.msi
 
+    - name: Download Twingate installer without cache (Windows)
+      if: runner.os == 'Windows' && inputs.cache != 'true'
+      shell: powershell
+      run: |
+          Invoke-WebRequest https://api.twingate.com/download/windows?installer=msi -OutFile .\twingate_client.msi
+
+    - name: Install and Start Twingate (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
           Set-Content .\key.json  '${{ inputs.service-key }}'
           $key_path = (Get-Item .\key.json | Resolve-Path).ProviderPath
 
