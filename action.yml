@@ -112,19 +112,22 @@ runs:
       shell: powershell
       run: |
           try {
-            $response = Invoke-WebRequest -Uri "https://api.twingate.com/download/windows?installer=msi" -Method Head -MaximumRedirection 0 -ErrorAction Ignore
-            if ($response -and $response.Headers -and $response.Headers.Location) {
-              $location = $response.Headers.Location
+            $response = Invoke-WebRequest -Uri "https://api.twingate.com/download/windows?installer=msi" -Method Head -MaximumRedirection 0 -ErrorAction Stop
+          } catch {
+            # When MaximumRedirection is 0, redirects cause an exception
+            # The redirect location is in the exception response
+            if ($_.Exception.Response -and $_.Exception.Response.Headers -and $_.Exception.Response.Headers.Location) {
+              $location = $_.Exception.Response.Headers.Location
               if ($location -match '/versions/([^/]+)/') {
                 $version = $matches[1]
                 echo "version=$version" >> $env:GITHUB_OUTPUT
                 Write-Host "Latest Twingate version: $version"
+              } else {
+                Write-Host "Warning: Could not parse version from redirect location: $location"
               }
             } else {
-              Write-Host "Warning: Could not determine version from redirect"
+              Write-Host "Warning: Error checking version - $($_.Exception.Message)"
             }
-          } catch {
-            Write-Host "Warning: Error checking version - $($_.Exception.Message)"
           }
 
     - name: Cache Twingate package (Windows)
