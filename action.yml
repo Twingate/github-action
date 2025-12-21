@@ -39,6 +39,7 @@ runs:
         packages: twingate
         add-repository: https://packages.twingate.com/apt/
         version: ${{ steps.twingate-version.outputs.version }}
+        debug: true
 
     # - name: Install Twingate (Linux)
     #   if: runner.os == 'Linux'
