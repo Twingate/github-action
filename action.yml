@@ -25,6 +25,15 @@ runs:
         echo "Unsupported Runner OS: ${{ runner.os }}"
         exit 1
 
+    - name: Get latest Twingate version
+      if: runner.os == 'Linux' && inputs.cache == 'true'
+      id: twingate-version
+      shell: bash
+      run: |
+        VERSION=$(curl -s https://packages.twingate.com/apt/Packages | awk '/^Version:/ {print $2}' | sort -V | tail -1)
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Latest Twingate version: $VERSION"
+
     - name: Install Twingate (Linux)
       if: runner.os == 'Linux'
       shell: bash
