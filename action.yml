@@ -111,24 +111,41 @@ runs:
       id: twingate-version-windows
       shell: powershell
       run: |
-          try {
-            $response = Invoke-WebRequest -Uri "https://api.twingate.com/download/windows?installer=msi" -Method Head -MaximumRedirection 0 -ErrorAction Stop
-          } catch {
-            # When MaximumRedirection is 0, redirects cause an exception
-            # The redirect location is in the exception response
-            if ($_.Exception.Response -and $_.Exception.Response.Headers -and $_.Exception.Response.Headers.Location) {
-              $location = $_.Exception.Response.Headers.Location
-              if ($location -match '/versions/([^/]+)/') {
-                $version = $matches[1]
-                echo "version=$version" >> $env:GITHUB_OUTPUT
-                Write-Host "Latest Twingate version: $version"
-              } else {
-                Write-Host "Warning: Could not parse version from redirect location: $location"
-              }
-            } else {
-              Write-Host "Warning: Error checking version - $($_.Exception.Message)"
-            }
-          }
+        $uri = "https://api.twingate.com/download/windows?installer=msi"
+        try {
+            # Make request without following redirects
+            $response = Invoke-WebRequest `
+                -Uri $uri `
+                -Method Get `
+                -MaximumRedirection 0 `
+                -ErrorAction Stop
+        }
+        catch {
+            # When MaximumRedirection = 0, PowerShell throws on 302 — grab the response anyway
+            $response = $_.Exception.Response
+        }
+
+        if (-not $response) {
+         throw "No HTTP response received"
+        }
+        if ($response.StatusCode -ne 302) {
+         throw "Expected HTTP 302, got $($response.StatusCode)"
+        }
+
+        if (-not $location) {
+          throw "Missing Location header"
+        }
+
+        # Extract version from URL
+        # Example:
+        # https://binaries.twingate.com/client/windows/versions/2025.338.1789/TwingateWindowsInstaller.msi
+        if ($location -match "https://binaries.twingate.com/client/windows/versions/([^/]+)/") {
+          $version = $Matches[1]
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "Latest Twingate version: $version"
+        } else {
+          throw "Could not parse version from Location header: $location"
+        }
 
     - name: Cache Twingate package (Windows)
       if: runner.os == 'Windows' && inputs.cache == 'true'
