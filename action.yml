@@ -11,6 +11,10 @@ inputs:
     description: 'Enable debug output'
     required: false
     default: "false"
+  cache:
+    description: 'Enable caching of Twingate packages to speed up installation'
+    required: false
+    default: "true"    
 runs:
   using: "composite"
   steps:
