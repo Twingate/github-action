@@ -34,14 +34,20 @@ runs:
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "Latest Twingate version: $VERSION"
 
-    - name: Install Twingate (Linux)
-      if: runner.os == 'Linux'
-      shell: bash
-      run: |
-        sudo apt update
-        echo "deb [trusted=yes] https://packages.twingate.com/apt/ /" | sudo tee /etc/apt/sources.list.d/twingate.list
-        sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/twingate.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
-        sudo apt install -yq twingate
+    - uses: awalsh128/cache-apt-pkgs-action@latest
+      with:
+        packages: twingate
+        add-repository: https://packages.twingate.com/apt/
+        version: ${{ steps.twingate-version.outputs.version }}
+
+    # - name: Install Twingate (Linux)
+    #   if: runner.os == 'Linux'
+    #   shell: bash
+    #   run: |
+    #     sudo apt update
+    #     echo "deb [trusted=yes] https://packages.twingate.com/apt/ /" | sudo tee /etc/apt/sources.list.d/twingate.list
+    #     sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/twingate.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
+    #     sudo apt install -yq twingate
     
     - name: Setup and start Twingate (Linux)
       if: runner.os == 'Linux'
