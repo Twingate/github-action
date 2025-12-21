@@ -38,7 +38,6 @@ runs:
     - uses: awalsh128/cache-apt-pkgs-action@v1.6.0
       with:
         packages: twingate
-        add-repository: https://packages.twingate.com/apt/
         version: ${{ steps.twingate-version.outputs.version }}
         debug: true
 
