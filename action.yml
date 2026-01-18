@@ -46,7 +46,7 @@ runs:
       id: cache-twingate
       with:
         path: ~/.twingate-cache
-        key: twingate-cache-v1-${{ runner.os }}-${{ runner.arch }}-v${{ steps.twingate-version.outputs.version }}
+        key: twingate-cache-v2-${{ runner.os }}-${{ runner.arch }}-v${{ steps.twingate-version.outputs.version }}
 
     - name: Validate cached package
       if: runner.os == 'Linux' && steps.cache-twingate.outputs.cache-hit == 'true'
@@ -94,8 +94,8 @@ runs:
           # Download Twingate and all dependencies to cache directory
           # Using sudo -E to preserve HOME and proper permissions
           sudo -E apt-get install -yq --download-only -o Dir::Cache::Archives="$HOME/.twingate-cache" twingate
-          # Also download any missing dependencies
-          sudo -E apt-get install -yq --download-only -o Dir::Cache::Archives="$HOME/.twingate-cache" twingate -f
+          # Install to resolve any missing dependencies, then download them
+          sudo -E apt-get install -yq --download-only -o Dir::Cache::Archives="$HOME/.twingate-cache" -f
           # Fix permissions so cache action can save files
           sudo chown -R $(id -u):$(id -g) ~/.twingate-cache
         fi
