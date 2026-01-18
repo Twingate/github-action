@@ -81,8 +81,13 @@ runs:
       if: runner.os == 'Linux' && (steps.cache-twingate.outputs.cache-hit != 'true' || steps.validate-cache.outputs.valid != 'true' || steps.twingate-version.outputs.version == 'unknown')
       shell: bash
       run: |
+        # Import Twingate GPG key for signature verification
+        curl -fsSL https://packages.twingate.com/apt/gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/twingate-client-keyring.gpg
+
+        # Add Twingate repository with GPG key verification
+        echo "deb [signed-by=/usr/share/keyrings/twingate-client-keyring.gpg] https://packages.twingate.com/apt/ * *" | sudo tee /etc/apt/sources.list.d/twingate.list
+
         sudo apt update
-        echo "deb [trusted=yes] https://packages.twingate.com/apt/ /" | sudo tee /etc/apt/sources.list.d/twingate.list
         sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/twingate.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
 
         # Download all packages to cache if caching is enabled
