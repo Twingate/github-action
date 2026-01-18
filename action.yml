@@ -45,9 +45,7 @@ runs:
       uses: actions/cache@v5
       id: cache-twingate
       with:
-        path: |
-          ~/.twingate-cache
-          /var/cache/apt/archives
+        path: ~/.twingate-cache
         key: twingate-${{ runner.os }}-${{ runner.arch }}-v${{ steps.twingate-version.outputs.version }}
         restore-keys: |
           twingate-${{ runner.os }}-${{ runner.arch }}-
@@ -75,9 +73,8 @@ runs:
       shell: bash
       run: |
         echo "Installing Twingate from cache"
-        DEB_FILE=$(ls ~/.twingate-cache/twingate*.deb | head -1)
-        # Skip apt update when using cache - all packages are cached
-        sudo dpkg -i "$DEB_FILE" || true
+        # Install all packages from cache directory (twingate + dependencies)
+        sudo dpkg -i ~/.twingate-cache/*.deb || true
         sudo apt-get install -f -yq
 
     - name: Install Twingate (Linux)
@@ -91,10 +88,8 @@ runs:
         # Download all packages to cache if caching is enabled
         if [ "${{ steps.twingate-version.outputs.version }}" != "unknown" ]; then
           mkdir -p ~/.twingate-cache
-          # Download Twingate package and all dependencies to cache
-          sudo apt-get install -yq --download-only twingate
-          # Copy downloaded packages to our cache directory
-          sudo cp /var/cache/apt/archives/twingate*.deb ~/.twingate-cache/ 2>/dev/null || true
+          # Download Twingate and all dependencies to cache directory
+          sudo apt-get install -yq --download-only -o Dir::Cache::Archives="$HOME/.twingate-cache" twingate
         fi
 
         sudo apt install -yq twingate
