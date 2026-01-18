@@ -40,15 +40,17 @@ runs:
       shell: bash
       run: mkdir -p ~/.twingate-cache
 
-    - name: Cache Twingate package
+    - name: Cache Twingate package and dependencies
       if: runner.os == 'Linux' && steps.twingate-version.outputs.version != 'unknown'
       uses: actions/cache@v5
       id: cache-twingate
       with:
-        path: ~/.twingate-cache
-        key: twingate-deb-${{ runner.os }}-${{ runner.arch }}-v${{ steps.twingate-version.outputs.version }}
+        path: |
+          ~/.twingate-cache
+          /var/cache/apt/archives
+        key: twingate-${{ runner.os }}-${{ runner.arch }}-v${{ steps.twingate-version.outputs.version }}
         restore-keys: |
-          twingate-deb-${{ runner.os }}-${{ runner.arch }}-
+          twingate-${{ runner.os }}-${{ runner.arch }}-
 
     - name: Validate cached package
       if: runner.os == 'Linux' && steps.cache-twingate.outputs.cache-hit == 'true'
@@ -74,7 +76,7 @@ runs:
       run: |
         echo "Installing Twingate from cache"
         DEB_FILE=$(ls ~/.twingate-cache/twingate*.deb | head -1)
-        sudo apt update
+        # Skip apt update when using cache - all packages are cached
         sudo dpkg -i "$DEB_FILE" || true
         sudo apt-get install -f -yq
 
@@ -86,11 +88,13 @@ runs:
         echo "deb [trusted=yes] https://packages.twingate.com/apt/ /" | sudo tee /etc/apt/sources.list.d/twingate.list
         sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/twingate.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
 
-        # Download to cache if caching is enabled
+        # Download all packages to cache if caching is enabled
         if [ "${{ steps.twingate-version.outputs.version }}" != "unknown" ]; then
           mkdir -p ~/.twingate-cache
-          cd ~/.twingate-cache
-          apt-get download twingate || true
+          # Download Twingate package and all dependencies to cache
+          sudo apt-get install -yq --download-only twingate
+          # Copy downloaded packages to our cache directory
+          sudo cp /var/cache/apt/archives/twingate*.deb ~/.twingate-cache/ 2>/dev/null || true
         fi
 
         sudo apt install -yq twingate
