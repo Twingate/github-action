@@ -35,6 +35,10 @@ runs:
           echo "Latest Twingate version: $VERSION"
         fi
 
+        # Get OS version for cache key
+        OS_VERSION=$(lsb_release -cs 2>/dev/null || grep VERSION_CODENAME /etc/os-release | cut -d= -f2)
+        echo "os_version=$OS_VERSION" >> $GITHUB_OUTPUT
+
     - name: Setup cache directory
       if: runner.os == 'Linux' && steps.twingate-version.outputs.version != 'unknown'
       shell: bash
@@ -46,7 +50,7 @@ runs:
       id: cache-twingate
       with:
         path: ~/.twingate-cache
-        key: twingate-cache-v2-${{ runner.os }}-${{ runner.arch }}-${{ runner.name }}-v${{ steps.twingate-version.outputs.version }}
+        key: twingate-cache-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.twingate-version.outputs.os_version }}-v${{ steps.twingate-version.outputs.version }}
 
     - name: Validate cached package
       if: runner.os == 'Linux' && steps.cache-twingate.outputs.cache-hit == 'true'
