@@ -46,7 +46,7 @@ runs:
       id: cache-twingate
       with:
         path: ~/.twingate-cache
-        key: twingate-${{ runner.os }}-${{ runner.arch }}-v${{ steps.twingate-version.outputs.version }}-cache-v1
+        key: twingate-cache-v1-${{ runner.os }}-${{ runner.arch }}-v${{ steps.twingate-version.outputs.version }}
 
     - name: Validate cached package
       if: runner.os == 'Linux' && steps.cache-twingate.outputs.cache-hit == 'true'
