@@ -94,7 +94,10 @@ runs:
         if [ "${{ steps.twingate-version.outputs.version }}" != "unknown" ]; then
           mkdir -p ~/.twingate-cache
           # Download Twingate and all dependencies to cache directory
-          sudo apt-get install -yq --download-only -o Dir::Cache::Archives="$HOME/.twingate-cache" twingate
+          # Using sudo -E to preserve HOME and proper permissions
+          sudo -E apt-get install -yq --download-only -o Dir::Cache::Archives="$HOME/.twingate-cache" twingate
+          # Fix permissions so cache action can save files
+          sudo chown -R $(id -u):$(id -g) ~/.twingate-cache
         fi
 
         sudo apt install -yq twingate
