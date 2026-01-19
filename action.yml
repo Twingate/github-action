@@ -70,7 +70,12 @@ runs:
           Add-Content -Path $env:GITHUB_OUTPUT -Value "version=unknown"
         }
 
-        $osVersion = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion").CurrentBuildNumber
+        try {
+          $osVersion = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion").CurrentBuildNumber
+        } catch {
+          if ('${{ inputs.debug }}' -eq 'true') { Write-Host "[DEBUG] Failed to read Windows build number from registry: $_" }
+          $osVersion = "unknown"
+        }
         if ('${{ inputs.debug }}' -eq 'true') { Write-Host "[DEBUG] Windows build number: $osVersion" }
         Add-Content -Path $env:GITHUB_OUTPUT -Value "os_version=$osVersion"
 
