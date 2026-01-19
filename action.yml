@@ -26,7 +26,7 @@ runs:
       id: twingate-version
       shell: bash
       run: |
-        VERSION=$(curl -sf https://packages.twingate.com/apt/Packages | awk '/^Version:/ {print $2}' | sort -V | tail -1)
+        VERSION=$(curl -sf https://packages.twingate.com/apt/Packages | awk '/^Package: twingate$/,/^Version:/ {if (/^Version:/) print $2}' | sort -V | tail -1)
         if [ -z "$VERSION" ]; then
           echo "Failed to fetch version, proceeding without cache"
           echo "version=unknown" >> $GITHUB_OUTPUT
