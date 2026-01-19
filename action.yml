@@ -165,11 +165,11 @@ runs:
         sudo dpkg -i ~/.twingate-cache/*.deb || true
         sudo apt-get install -f -yq
 
-    - name: Install Twingate from cache (Windows)
+    - name: Copy cached MSI to working directory (Windows)
       if: runner.os == 'Windows' && steps.validate-cache-windows.outputs.valid == 'true'
       shell: powershell
       run: |
-        Write-Host "Installing Twingate from cache"
+        Write-Host "Copying cached MSI to working directory"
         $cacheDir = "${{ runner.temp }}\twingate-cache"
         $msiFile = Get-ChildItem -Path $cacheDir -Filter "twingate*.msi" | Select-Object -First 1
 
