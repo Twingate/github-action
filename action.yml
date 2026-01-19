@@ -92,17 +92,18 @@ runs:
       if: runner.os == 'Windows' && steps.twingate-version-windows.outputs.version != 'unknown'
       shell: powershell
       run: |
-        $cacheDir = "$env:TEMP\twingate-cache"
+        $cacheDir = "${{ runner.temp }}\twingate-cache"
         if (-not (Test-Path $cacheDir)) {
           New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
         }
+        Write-Host "Cache directory: $cacheDir"
 
     - name: Cache Twingate MSI (Windows)
       if: runner.os == 'Windows' && steps.twingate-version-windows.outputs.version != 'unknown'
       uses: actions/cache@v5
       id: cache-twingate-windows
       with:
-        path: ${{ env.TEMP }}\twingate-cache
+        path: ${{ runner.temp }}\twingate-cache
         key: twingate-cache-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.twingate-version-windows.outputs.os_version }}-v${{ steps.twingate-version-windows.outputs.version }}
 
     - name: Validate cached package (Linux)
@@ -128,7 +129,7 @@ runs:
       id: validate-cache-windows
       shell: powershell
       run: |
-        $cacheDir = "$env:TEMP\twingate-cache"
+        $cacheDir = "${{ runner.temp }}\twingate-cache"
         $msiFiles = Get-ChildItem -Path $cacheDir -Filter "twingate*.msi" -ErrorAction SilentlyContinue
 
         if ($msiFiles.Count -eq 0) {
@@ -170,7 +171,7 @@ runs:
       shell: powershell
       run: |
         Write-Host "Installing Twingate from cache"
-        $cacheDir = "$env:TEMP\twingate-cache"
+        $cacheDir = "${{ runner.temp }}\twingate-cache"
         $msiFile = Get-ChildItem -Path $cacheDir -Filter "twingate*.msi" | Select-Object -First 1
 
         if ($msiFile) {
@@ -219,7 +220,7 @@ runs:
 
         # Cache the MSI if caching is enabled
         if ('${{ steps.twingate-version-windows.outputs.version }}' -ne 'unknown') {
-          $cacheDir = "$env:TEMP\twingate-cache"
+          $cacheDir = "${{ runner.temp }}\twingate-cache"
           if (-not (Test-Path $cacheDir)) {
             New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
           }
