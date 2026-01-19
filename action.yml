@@ -207,7 +207,7 @@ runs:
 
         sudo apt install -yq twingate
 
-    - name: Install and Start Twingate (Windows)
+    - name: Download and cache Twingate MSI (Windows)
       if: runner.os == 'Windows' && (steps.cache-twingate-windows.outputs.cache-hit != 'true' || steps.validate-cache-windows.outputs.valid != 'true' || steps.twingate-version-windows.outputs.version == 'unknown')
       shell: powershell
       run: |
