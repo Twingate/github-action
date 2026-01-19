@@ -47,32 +47,36 @@ runs:
         try {
           # Get redirect location without downloading the file
           $msiUrl = "https://api.twingate.com/download/windows?installer=msi"
+          Write-Host "Fetching version from $msiUrl..."
+
           $response = Invoke-WebRequest -Uri $msiUrl -Method Get -UseBasicParsing -MaximumRedirection 0 -ErrorAction SilentlyContinue
 
-          # Try to get version from response history/content
-          if ($response.BaseResponse.RequestMessage.RequestUri) {
-            $finalUrl = $response.BaseResponse.RequestMessage.RequestUri.ToString()
-          } else {
-            $finalUrl = $response.Headers.Location
-          }
+          # Get the redirect location from headers
+          $finalUrl = $response.Headers.Location
+          Write-Host "Redirect location: $finalUrl"
 
-          if ($finalUrl -and $finalUrl -match 'twingate-client-([\d.]+)\.msi') {
+          # Extract version from URL path (e.g., /versions/2026.7.2078/)
+          if ($finalUrl -match 'versions/([\d.]+)/') {
             $version = $matches[1]
             Write-Host "Latest Twingate version: $version"
             Add-Content -Path $env:GITHUB_OUTPUT -Value "version=$version"
           } else {
-            Write-Host "Could not extract version from redirect, proceeding without cache"
+            Write-Host "Could not extract version from URL: $finalUrl"
+            Write-Host "Expected format: .../versions/{version}/..."
             Add-Content -Path $env:GITHUB_OUTPUT -Value "version=unknown"
           }
         } catch {
           Write-Host "Failed to fetch version: $_"
+          Write-Host "Exception details: $($_.Exception | Out-String)"
           Add-Content -Path $env:GITHUB_OUTPUT -Value "version=unknown"
         }
 
         # Get Windows version for cache key (e.g., "2022", "2025")
         $osVersion = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion").ReleaseId
+        Write-Host "Windows ReleaseId: $osVersion"
         if (-not $osVersion) {
           $osVersion = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion").CurrentBuildNumber
+          Write-Host "Using BuildNumber instead: $osVersion"
         }
         Add-Content -Path $env:GITHUB_OUTPUT -Value "os_version=$osVersion"
 
