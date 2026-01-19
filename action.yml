@@ -71,20 +71,8 @@ runs:
           Add-Content -Path $env:GITHUB_OUTPUT -Value "version=unknown"
         }
 
-        # Get Windows version for cache key
-        # Try multiple properties to identify the Windows version
-        $osInfo = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
-        Write-Host "Available OS properties:"
-        Write-Host "  ReleaseId: $($osInfo.ReleaseId)"
-        Write-Host "  CurrentVersion: $($osInfo.CurrentVersion)"
-        Write-Host "  CurrentBuildNumber: $($osInfo.CurrentBuildNumber)"
-        Write-Host "  CurrentMajorVersionNumber: $($osInfo.CurrentMajorVersionNumber)"
-        Write-Host "  CurrentMinorVersionNumber: $($osInfo.CurrentMinorVersionNumber)"
-        Write-Host "  DisplayVersion: $($osInfo.DisplayVersion)"
-
-        # Use BuildNumber as unique identifier since it's different per version
-        $osVersion = $osInfo.CurrentBuildNumber
-        Write-Host "Using BuildNumber for cache key: $osVersion"
+        $osVersion = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion").CurrentBuildNumber
+        Write-Host "Windows build number (for cache key): $osVersion"
         Add-Content -Path $env:GITHUB_OUTPUT -Value "os_version=$osVersion"
 
     - name: Setup cache directory (Linux)
