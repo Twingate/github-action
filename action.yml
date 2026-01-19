@@ -228,6 +228,9 @@ runs:
           $msiCachePath = "$cacheDir\twingate-client-$version.msi"
           Write-Host "Caching MSI to $msiCachePath"
           Copy-Item -Path ".\twingate_client.msi" -Destination $msiCachePath -Force
+
+          Write-Host "Cache directory contents:"
+          Get-ChildItem -Path $cacheDir | ForEach-Object { Write-Host "  - $($_.Name) ($($_.Length) bytes)" }
         }
     
     - name: Setup and start Twingate (Linux)
