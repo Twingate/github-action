@@ -11,6 +11,10 @@ inputs:
     description: 'Enable debug output'
     required: false
     default: "false"
+  cache-version:
+    description: 'Cache version suffix for invalidating cached packages'
+    required: false
+    default: "3"
 runs:
   using: "composite"
   steps:
@@ -50,9 +54,7 @@ runs:
       id: cache-twingate
       with:
         path: ~/.twingate-cache
-        # NOTE: 'v2' is a manual cache format version. If the cache directory layout
-        # or caching logic changes, increment this version to avoid stale/corrupted caches.
-        key: twingate-cache-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.twingate-version.outputs.os_version }}-v${{ steps.twingate-version.outputs.version }}
+        key: twingate-cache-v${{ inputs.cache-version }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.twingate-version.outputs.os_version }}-v${{ steps.twingate-version.outputs.version }}
 
     - name: Validate cached package
       if: runner.os == 'Linux' && steps.cache-twingate.outputs.cache-hit == 'true'
