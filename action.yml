@@ -45,19 +45,23 @@ runs:
       shell: powershell
       run: |
         try {
-          $response = Invoke-WebRequest -Uri "https://api.twingate.com/download/windows?installer=msi" -Method Head -MaximumRedirection 0 -ErrorAction SilentlyContinue
-          $url = $response.Headers.Location
-          if ($url) {
-            $version = $url -replace '.*twingate-client-([\d.]+)\.msi.*', '$1'
-            if ($version -and $version -ne $url) {
-              Write-Host "Latest Twingate version: $version"
-              Add-Content -Path $env:GITHUB_OUTPUT -Value "version=$version"
-            } else {
-              Write-Host "Failed to extract version from URL"
-              Add-Content -Path $env:GITHUB_OUTPUT -Value "version=unknown"
-            }
+          # Get redirect location without downloading the file
+          $msiUrl = "https://api.twingate.com/download/windows?installer=msi"
+          $response = Invoke-WebRequest -Uri $msiUrl -Method Get -UseBasicParsing -MaximumRedirection 0 -ErrorAction SilentlyContinue
+
+          # Try to get version from response history/content
+          if ($response.BaseResponse.RequestMessage.RequestUri) {
+            $finalUrl = $response.BaseResponse.RequestMessage.RequestUri.ToString()
           } else {
-            Write-Host "Failed to get download URL"
+            $finalUrl = $response.Headers.Location
+          }
+
+          if ($finalUrl -and $finalUrl -match 'twingate-client-([\d.]+)\.msi') {
+            $version = $matches[1]
+            Write-Host "Latest Twingate version: $version"
+            Add-Content -Path $env:GITHUB_OUTPUT -Value "version=$version"
+          } else {
+            Write-Host "Could not extract version from redirect, proceeding without cache"
             Add-Content -Path $env:GITHUB_OUTPUT -Value "version=unknown"
           }
         } catch {
@@ -100,7 +104,7 @@ runs:
       id: cache-twingate-windows
       with:
         path: ${{ env.TEMP }}\twingate-cache
-        key: twingate-msi-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.twingate-version-windows.outputs.os_version }}-v${{ steps.twingate-version-windows.outputs.version }}
+        key: twingate-cache-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.twingate-version-windows.outputs.os_version }}-v${{ steps.twingate-version-windows.outputs.version }}
 
     - name: Validate cached package (Linux)
       if: runner.os == 'Linux' && steps.cache-twingate-linux.outputs.cache-hit == 'true'
