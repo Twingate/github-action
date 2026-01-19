@@ -45,34 +45,29 @@ runs:
       shell: powershell
       run: |
         try {
-          # Get redirect location without downloading the file
           $msiUrl = "https://api.twingate.com/download/windows?installer=msi"
-          Write-Host "Fetching version from $msiUrl..."
+          if ('${{ inputs.debug }}' -eq 'true') { Write-Host "[DEBUG] Fetching from $msiUrl" }
 
           $response = Invoke-WebRequest -Uri $msiUrl -Method Get -UseBasicParsing -MaximumRedirection 0 -ErrorAction SilentlyContinue
-
-          # Get the redirect location from headers
           $finalUrl = $response.Headers.Location
-          Write-Host "Redirect location: $finalUrl"
 
-          # Extract version from URL path (e.g., /versions/2026.7.2078/)
+          if ('${{ inputs.debug }}' -eq 'true') { Write-Host "[DEBUG] Redirect location: $finalUrl" }
+
           if ($finalUrl -match 'versions/([\d.]+)/') {
             $version = $matches[1]
             Write-Host "Latest Twingate version: $version"
             Add-Content -Path $env:GITHUB_OUTPUT -Value "version=$version"
           } else {
-            Write-Host "Could not extract version from URL: $finalUrl"
-            Write-Host "Expected format: .../versions/{version}/..."
+            if ('${{ inputs.debug }}' -eq 'true') { Write-Host "[DEBUG] Could not extract version from URL" }
             Add-Content -Path $env:GITHUB_OUTPUT -Value "version=unknown"
           }
         } catch {
-          Write-Host "Failed to fetch version: $_"
-          Write-Host "Exception details: $($_.Exception | Out-String)"
+          if ('${{ inputs.debug }}' -eq 'true') { Write-Host "[DEBUG] Error: $_" }
           Add-Content -Path $env:GITHUB_OUTPUT -Value "version=unknown"
         }
 
         $osVersion = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion").CurrentBuildNumber
-        Write-Host "Windows build number (for cache key): $osVersion"
+        if ('${{ inputs.debug }}' -eq 'true') { Write-Host "[DEBUG] Windows build number: $osVersion" }
         Add-Content -Path $env:GITHUB_OUTPUT -Value "os_version=$osVersion"
 
     - name: Setup cache directory (Linux)
@@ -96,7 +91,7 @@ runs:
         if (-not (Test-Path $cacheDir)) {
           New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
         }
-        Write-Host "Cache directory: $cacheDir"
+        if ('${{ inputs.debug }}' -eq 'true') { Write-Host "[DEBUG] Cache directory: $cacheDir" }
 
     - name: Cache Twingate MSI (Windows)
       if: runner.os == 'Windows' && steps.twingate-version-windows.outputs.version != 'unknown'
@@ -227,11 +222,9 @@ runs:
 
           $version = '${{ steps.twingate-version-windows.outputs.version }}'
           $msiCachePath = "$cacheDir\twingate-client-$version.msi"
-          Write-Host "Caching MSI to $msiCachePath"
+          if ('${{ inputs.debug }}' -eq 'true') { Write-Host "[DEBUG] Caching MSI to $msiCachePath" }
           Copy-Item -Path ".\twingate_client.msi" -Destination $msiCachePath -Force
-
-          Write-Host "Cache directory contents:"
-          Get-ChildItem -Path $cacheDir | ForEach-Object { Write-Host "  - $($_.Name) ($($_.Length) bytes)" }
+          if ('${{ inputs.debug }}' -eq 'true') { Get-ChildItem -Path $cacheDir | ForEach-Object { Write-Host "[DEBUG] Cache: $($_.Name) ($($_.Length) bytes)" } }
         }
     
     - name: Setup and start Twingate (Linux)
