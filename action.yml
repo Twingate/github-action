@@ -61,19 +61,35 @@ runs:
       id: validate-cache
       shell: bash
       run: |
-        DEB_FILE=$(ls ~/.twingate-cache/twingate*.deb 2>/dev/null | head -1)
-        if [ -z "$DEB_FILE" ]; then
-          echo "No .deb file found in cache"
+        # Collect all cached .deb files (Twingate + dependencies)
+        DEB_FILES=(~/.twingate-cache/*.deb)
+
+        # If the glob did not match anything, the first element will not exist
+        if [ ! -e "${DEB_FILES[0]}" ]; then
+          echo "No .deb files found in cache"
           echo "valid=false" >> $GITHUB_OUTPUT
-        elif ! dpkg-deb --info "$DEB_FILE" >/dev/null 2>&1; then
-          echo "Cached .deb is corrupted"
-          rm -rf ~/.twingate-cache/*
-          echo "valid=false" >> $GITHUB_OUTPUT
-        else
-          echo "Cache is valid"
-          echo "valid=true" >> $GITHUB_OUTPUT
+          exit 0
         fi
 
+        # Ensure cache contains more than just the Twingate package (dependencies should also be present)
+        if [ "${#DEB_FILES[@]}" -lt 2 ]; then
+          echo "Cache appears incomplete: only ${#DEB_FILES[@]} .deb file(s) found (expected Twingate package plus dependencies)"
+          echo "valid=false" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        # Validate all .deb files in the cache directory
+        for DEB_FILE in "${DEB_FILES[@]}"; do
+          if ! dpkg-deb --info "$DEB_FILE" >/dev/null 2>&1; then
+            echo "Cached .deb is corrupted: $DEB_FILE"
+            rm -rf ~/.twingate-cache/*
+            echo "valid=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+        done
+
+        echo "Cache is valid (all .deb files present and intact)"
+        echo "valid=true" >> $GITHUB_OUTPUT
     - name: Install Twingate from cache
       if: runner.os == 'Linux' && steps.validate-cache.outputs.valid == 'true'
       shell: bash
