@@ -11,6 +11,10 @@ inputs:
     description: 'Enable debug output'
     required: false
     default: "false"
+  cache-version:
+    description: 'Cache version suffix for invalidating cached packages'
+    required: false
+    default: "3"
 runs:
   using: "composite"
   steps:
@@ -21,13 +25,89 @@ runs:
         echo "Unsupported Runner OS: ${{ runner.os }}"
         exit 1
 
-    - name: Install Twingate (Linux)
+    - name: Get latest Twingate version
       if: runner.os == 'Linux'
+      id: twingate-version
       shell: bash
       run: |
+        VERSION=$(curl -sf https://packages.twingate.com/apt/Packages | awk '/^Package: twingate$/,/^Version:/ {if (/^Version:/) print $2}' | sort -V | tail -1)
+        if [ -z "$VERSION" ]; then
+          echo "Failed to fetch version, proceeding without cache"
+          echo "version=unknown" >> $GITHUB_OUTPUT
+        else
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Latest Twingate version: $VERSION"
+        fi
+
+        # Get OS version for cache key
+        OS_VERSION=$(grep VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"')
+        echo "os_version=$OS_VERSION" >> $GITHUB_OUTPUT
+
+    - name: Setup cache directory
+      if: runner.os == 'Linux' && steps.twingate-version.outputs.version != 'unknown'
+      shell: bash
+      run: mkdir -p ~/.twingate-cache
+
+    - name: Cache Twingate package and dependencies
+      if: runner.os == 'Linux' && steps.twingate-version.outputs.version != 'unknown'
+      uses: actions/cache@v5
+      id: cache-twingate
+      with:
+        path: ~/.twingate-cache
+        key: twingate-cache-v${{ inputs.cache-version }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.twingate-version.outputs.os_version }}-v${{ steps.twingate-version.outputs.version }}
+
+    - name: Validate cached package
+      if: runner.os == 'Linux' && steps.cache-twingate.outputs.cache-hit == 'true'
+      id: validate-cache
+      shell: bash
+      run: |
+        DEB_FILE=$(ls ~/.twingate-cache/twingate*.deb 2>/dev/null | head -1)
+        if [ -z "$DEB_FILE" ]; then
+          echo "No .deb file found in cache"
+          echo "valid=false" >> $GITHUB_OUTPUT
+        elif ! dpkg-deb --info "$DEB_FILE" >/dev/null 2>&1; then
+          echo "Cached .deb is corrupted"
+          rm -rf ~/.twingate-cache/*
+          echo "valid=false" >> $GITHUB_OUTPUT
+        else
+          echo "Cache is valid"
+          echo "valid=true" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Install Twingate from cache
+      if: runner.os == 'Linux' && steps.validate-cache.outputs.valid == 'true'
+      shell: bash
+      run: |
+        echo "Installing Twingate from cache"
+        # Install all packages from cache directory (twingate + dependencies)
+        sudo dpkg -i ~/.twingate-cache/*.deb || true
+        sudo apt-get install -f -yq
+
+    - name: Install Twingate (Linux)
+      if: runner.os == 'Linux' && (steps.cache-twingate.outputs.cache-hit != 'true' || steps.validate-cache.outputs.valid != 'true' || steps.twingate-version.outputs.version == 'unknown')
+      shell: bash
+      run: |
+        # Import Twingate GPG key for signature verification
+        curl -fsSL https://packages.twingate.com/apt/gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/twingate-client-keyring.gpg
+
+        # Add Twingate repository with GPG key verification
+        echo "deb [signed-by=/usr/share/keyrings/twingate-client-keyring.gpg] https://packages.twingate.com/apt/ * *" | sudo tee /etc/apt/sources.list.d/twingate.list
+
         sudo apt update
-        echo "deb [trusted=yes] https://packages.twingate.com/apt/ /" | sudo tee /etc/apt/sources.list.d/twingate.list
         sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/twingate.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
+
+        # Download all packages to cache if caching is enabled
+        if [ "${{ steps.twingate-version.outputs.version }}" != "unknown" ]; then
+          CACHE_DIR="${HOME:-/home/$USER}/.twingate-cache"
+          mkdir -p "$CACHE_DIR"
+          # Download Twingate and all dependencies to cache directory
+          sudo apt-get install -yq --download-only -o Dir::Cache::Archives="$CACHE_DIR" twingate
+          # Install to resolve any missing dependencies, then download them
+          sudo apt-get install -yq --download-only -o Dir::Cache::Archives="$CACHE_DIR" -f
+          # Fix permissions so cache action can save files
+          sudo chown -R "$(id -u)":"$(id -g)" "$CACHE_DIR"
+        fi
+
         sudo apt install -yq twingate
     
     - name: Setup and start Twingate (Linux)
