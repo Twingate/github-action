@@ -142,7 +142,6 @@ runs:
         } else {
           try {
             $msiFile = $msiFiles[0].FullName
-            $validMsi = $true
 
             # Try to get MSI properties - this validates the MSI file
             $msiInfo = Get-ItemProperty -Path $msiFile
