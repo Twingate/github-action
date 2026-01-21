@@ -284,7 +284,7 @@ runs:
       if: runner.os == 'Windows'
       shell: powershell
       run: |
-        # Install the Twingate service
+        # Install Twingate client and start service
         Set-Content .\key.json  '${{ inputs.service-key }}'
         $key_path = (Get-Item .\key.json | Resolve-Path).ProviderPath
 
