@@ -15,6 +15,10 @@ inputs:
     description: 'Cache version suffix for invalidating cached packages'
     required: false
     default: "3"
+  cache:
+    description: 'Enable caching of Twingate packages'
+    required: false
+    default: "true"
 runs:
   using: "composite"
   steps:
@@ -26,7 +30,7 @@ runs:
         exit 1
 
     - name: Get latest Twingate version (Linux)
-      if: runner.os == 'Linux'
+      if: runner.os == 'Linux' && inputs.cache == 'true'
       id: twingate-version-linux
       shell: bash
       run: |
@@ -44,7 +48,7 @@ runs:
         echo "os_version=$OS_VERSION" >> $GITHUB_OUTPUT
 
     - name: Get latest Twingate version (Windows)
-      if: runner.os == 'Windows'
+      if: runner.os == 'Windows' && inputs.cache == 'true'
       id: twingate-version-windows
       shell: powershell
       run: |
@@ -80,12 +84,12 @@ runs:
         Add-Content -Path $env:GITHUB_OUTPUT -Value "os_version=$osVersion"
 
     - name: Setup cache directory (Linux)
-      if: runner.os == 'Linux' && steps.twingate-version-linux.outputs.version != 'unknown'
+      if: runner.os == 'Linux' && inputs.cache == 'true' && steps.twingate-version-linux.outputs.version != 'unknown'
       shell: bash
       run: mkdir -p ~/.twingate-cache
 
     - name: Cache Twingate package and dependencies (Linux)
-      if: runner.os == 'Linux' && steps.twingate-version-linux.outputs.version != 'unknown'
+      if: runner.os == 'Linux' && inputs.cache == 'true' && steps.twingate-version-linux.outputs.version != 'unknown'
       uses: actions/cache@v5
       id: cache-twingate-linux
       with:
@@ -93,7 +97,7 @@ runs:
         key: twingate-cache-v${{ inputs.cache-version }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.twingate-version-linux.outputs.os_version }}-v${{ steps.twingate-version-linux.outputs.version }}
 
     - name: Setup cache directory (Windows)
-      if: runner.os == 'Windows' && steps.twingate-version-windows.outputs.version != 'unknown'
+      if: runner.os == 'Windows' && inputs.cache == 'true' && steps.twingate-version-windows.outputs.version != 'unknown'
       shell: powershell
       run: |
         $cacheDir = "${{ runner.temp }}\twingate-cache"
@@ -103,7 +107,7 @@ runs:
         if ('${{ inputs.debug }}' -eq 'true') { Write-Host "[DEBUG] Cache directory: $cacheDir" }
 
     - name: Cache Twingate MSI (Windows)
-      if: runner.os == 'Windows' && steps.twingate-version-windows.outputs.version != 'unknown'
+      if: runner.os == 'Windows' && inputs.cache == 'true' && steps.twingate-version-windows.outputs.version != 'unknown'
       uses: actions/cache@v5
       id: cache-twingate-windows
       with:
@@ -111,7 +115,7 @@ runs:
         key: twingate-cache-v${{ inputs.cache-version }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.twingate-version-windows.outputs.os_version }}-v${{ steps.twingate-version-windows.outputs.version }}
 
     - name: Validate cached package (Linux)
-      if: runner.os == 'Linux' && steps.cache-twingate-linux.outputs.cache-hit == 'true'
+      if: runner.os == 'Linux' && inputs.cache == 'true' && steps.cache-twingate-linux.outputs.cache-hit == 'true'
       id: validate-cache-linux
       shell: bash
       run: |
@@ -129,7 +133,7 @@ runs:
         fi
 
     - name: Validate cached MSI (Windows)
-      if: runner.os == 'Windows' && steps.cache-twingate-windows.outputs.cache-hit == 'true'
+      if: runner.os == 'Windows' && inputs.cache == 'true' && steps.cache-twingate-windows.outputs.cache-hit == 'true'
       id: validate-cache-windows
       shell: powershell
       run: |
@@ -161,7 +165,7 @@ runs:
         }
 
     - name: Install Twingate from cache (Linux)
-      if: runner.os == 'Linux' && steps.validate-cache-linux.outputs.valid == 'true'
+      if: runner.os == 'Linux' && inputs.cache == 'true' && steps.validate-cache-linux.outputs.valid == 'true'
       shell: bash
       run: |
         echo "Installing Twingate from cache"
@@ -170,7 +174,7 @@ runs:
         sudo apt-get install -f -yq
 
     - name: Copy cached MSI to working directory (Windows)
-      if: runner.os == 'Windows' && steps.validate-cache-windows.outputs.valid == 'true'
+      if: runner.os == 'Windows' && inputs.cache == 'true' && steps.validate-cache-windows.outputs.valid == 'true'
       shell: powershell
       run: |
         Write-Host "Copying cached MSI to working directory"
@@ -186,7 +190,7 @@ runs:
         }
 
     - name: Install Twingate (Linux)
-      if: runner.os == 'Linux' && (steps.cache-twingate-linux.outputs.cache-hit != 'true' || steps.validate-cache-linux.outputs.valid != 'true' || steps.twingate-version-linux.outputs.version == 'unknown')
+      if: runner.os == 'Linux' && (inputs.cache != 'true' || steps.cache-twingate-linux.outputs.cache-hit != 'true' || steps.validate-cache-linux.outputs.valid != 'true' || steps.twingate-version-linux.outputs.version == 'unknown')
       shell: bash
       run: |
         # Import Twingate GPG key for signature verification
@@ -212,7 +216,7 @@ runs:
         sudo apt install -yq twingate
 
     - name: Download and cache Twingate MSI (Windows)
-      if: runner.os == 'Windows' && (steps.cache-twingate-windows.outputs.cache-hit != 'true' || steps.validate-cache-windows.outputs.valid != 'true' || steps.twingate-version-windows.outputs.version == 'unknown')
+      if: runner.os == 'Windows' && (inputs.cache != 'true' || steps.cache-twingate-windows.outputs.cache-hit != 'true' || steps.validate-cache-windows.outputs.valid != 'true' || steps.twingate-version-windows.outputs.version == 'unknown')
       shell: powershell
       run: |
         # Download MSI
