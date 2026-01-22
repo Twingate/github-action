@@ -25,9 +25,9 @@ runs:
         echo "Unsupported Runner OS: ${{ runner.os }}"
         exit 1
 
-    - name: Get latest Twingate version
+    - name: Get latest Twingate version (Linux)
       if: runner.os == 'Linux'
-      id: twingate-version
+      id: twingate-version-linux
       shell: bash
       run: |
         VERSION=$(curl -sf https://packages.twingate.com/apt/Packages | awk '/^Package: twingate$/,/^Version:/ {if (/^Version:/) print $2}' | sort -V | tail -1)
@@ -43,22 +43,76 @@ runs:
         OS_VERSION=$(grep VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"')
         echo "os_version=$OS_VERSION" >> $GITHUB_OUTPUT
 
-    - name: Setup cache directory
-      if: runner.os == 'Linux' && steps.twingate-version.outputs.version != 'unknown'
+    - name: Get latest Twingate version (Windows)
+      if: runner.os == 'Windows'
+      id: twingate-version-windows
+      shell: powershell
+      run: |
+        try {
+          $msiUrl = "https://api.twingate.com/download/windows?installer=msi"
+          if ('${{ inputs.debug }}' -eq 'true') { Write-Host "[DEBUG] Fetching from $msiUrl" }
+
+          $response = Invoke-WebRequest -Uri $msiUrl -Method Get -UseBasicParsing -MaximumRedirection 0 -ErrorAction SilentlyContinue
+          $finalUrl = $response.Headers.Location
+
+          if ('${{ inputs.debug }}' -eq 'true') { Write-Host "[DEBUG] Redirect location: $finalUrl" }
+
+          if ($finalUrl -match 'versions/([\d.]+)/') {
+            $version = $matches[1]
+            Write-Host "Latest Twingate version: $version"
+            Add-Content -Path $env:GITHUB_OUTPUT -Value "version=$version"
+          } else {
+            if ('${{ inputs.debug }}' -eq 'true') { Write-Host "[DEBUG] Could not extract version from URL" }
+            Add-Content -Path $env:GITHUB_OUTPUT -Value "version=unknown"
+          }
+        } catch {
+          if ('${{ inputs.debug }}' -eq 'true') { Write-Host "[DEBUG] Error: $_" }
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "version=unknown"
+        }
+
+        try {
+          $osVersion = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion").CurrentBuildNumber
+        } catch {
+          if ('${{ inputs.debug }}' -eq 'true') { Write-Host "[DEBUG] Failed to read Windows build number from registry: $_" }
+          $osVersion = "unknown"
+        }
+        if ('${{ inputs.debug }}' -eq 'true') { Write-Host "[DEBUG] Windows build number: $osVersion" }
+        Add-Content -Path $env:GITHUB_OUTPUT -Value "os_version=$osVersion"
+
+    - name: Setup cache directory (Linux)
+      if: runner.os == 'Linux' && steps.twingate-version-linux.outputs.version != 'unknown'
       shell: bash
       run: mkdir -p ~/.twingate-cache
 
-    - name: Cache Twingate package and dependencies
-      if: runner.os == 'Linux' && steps.twingate-version.outputs.version != 'unknown'
+    - name: Cache Twingate package and dependencies (Linux)
+      if: runner.os == 'Linux' && steps.twingate-version-linux.outputs.version != 'unknown'
       uses: actions/cache@v5
-      id: cache-twingate
+      id: cache-twingate-linux
       with:
         path: ~/.twingate-cache
-        key: twingate-cache-v${{ inputs.cache-version }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.twingate-version.outputs.os_version }}-v${{ steps.twingate-version.outputs.version }}
+        key: twingate-cache-v${{ inputs.cache-version }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.twingate-version-linux.outputs.os_version }}-v${{ steps.twingate-version-linux.outputs.version }}
 
-    - name: Validate cached package
-      if: runner.os == 'Linux' && steps.cache-twingate.outputs.cache-hit == 'true'
-      id: validate-cache
+    - name: Setup cache directory (Windows)
+      if: runner.os == 'Windows' && steps.twingate-version-windows.outputs.version != 'unknown'
+      shell: powershell
+      run: |
+        $cacheDir = "${{ runner.temp }}\twingate-cache"
+        if (-not (Test-Path $cacheDir)) {
+          New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
+        }
+        if ('${{ inputs.debug }}' -eq 'true') { Write-Host "[DEBUG] Cache directory: $cacheDir" }
+
+    - name: Cache Twingate MSI (Windows)
+      if: runner.os == 'Windows' && steps.twingate-version-windows.outputs.version != 'unknown'
+      uses: actions/cache@v5
+      id: cache-twingate-windows
+      with:
+        path: ${{ runner.temp }}\twingate-cache
+        key: twingate-cache-v${{ inputs.cache-version }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.twingate-version-windows.outputs.os_version }}-v${{ steps.twingate-version-windows.outputs.version }}
+
+    - name: Validate cached package (Linux)
+      if: runner.os == 'Linux' && steps.cache-twingate-linux.outputs.cache-hit == 'true'
+      id: validate-cache-linux
       shell: bash
       run: |
         DEB_FILE=$(ls ~/.twingate-cache/twingate*.deb 2>/dev/null | head -1)
@@ -74,8 +128,40 @@ runs:
           echo "valid=true" >> $GITHUB_OUTPUT
         fi
 
-    - name: Install Twingate from cache
-      if: runner.os == 'Linux' && steps.validate-cache.outputs.valid == 'true'
+    - name: Validate cached MSI (Windows)
+      if: runner.os == 'Windows' && steps.cache-twingate-windows.outputs.cache-hit == 'true'
+      id: validate-cache-windows
+      shell: powershell
+      run: |
+        $cacheDir = "${{ runner.temp }}\twingate-cache"
+        $msiFiles = Get-ChildItem -Path $cacheDir -Filter "twingate*.msi" -ErrorAction SilentlyContinue
+
+        if ($msiFiles.Count -eq 0) {
+          Write-Host "No MSI file found in cache"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "valid=false"
+        } else {
+          try {
+            $msiFile = $msiFiles[0].FullName
+
+            # Try to get MSI properties - this validates the MSI file
+            $msiInfo = Get-ItemProperty -Path $msiFile
+            if (-not $msiInfo) {
+              Write-Host "Cached MSI is corrupted"
+              Remove-Item -Path $cacheDir -Recurse -Force -ErrorAction SilentlyContinue
+              Add-Content -Path $env:GITHUB_OUTPUT -Value "valid=false"
+            } else {
+              Write-Host "Cache is valid"
+              Add-Content -Path $env:GITHUB_OUTPUT -Value "valid=true"
+            }
+          } catch {
+            Write-Host "Cached MSI is corrupted: $_"
+            Remove-Item -Path $cacheDir -Recurse -Force -ErrorAction SilentlyContinue
+            Add-Content -Path $env:GITHUB_OUTPUT -Value "valid=false"
+          }
+        }
+
+    - name: Install Twingate from cache (Linux)
+      if: runner.os == 'Linux' && steps.validate-cache-linux.outputs.valid == 'true'
       shell: bash
       run: |
         echo "Installing Twingate from cache"
@@ -83,8 +169,24 @@ runs:
         sudo dpkg -i ~/.twingate-cache/*.deb || true
         sudo apt-get install -f -yq
 
+    - name: Copy cached MSI to working directory (Windows)
+      if: runner.os == 'Windows' && steps.validate-cache-windows.outputs.valid == 'true'
+      shell: powershell
+      run: |
+        Write-Host "Copying cached MSI to working directory"
+        $cacheDir = "${{ runner.temp }}\twingate-cache"
+        $msiFile = Get-ChildItem -Path $cacheDir -Filter "twingate*.msi" | Select-Object -First 1
+
+        if ($msiFile) {
+          Write-Host "Using cached MSI: $($msiFile.Name)"
+          Copy-Item -Path $msiFile.FullName -Destination ".\twingate_client.msi" -Force
+        } else {
+          Write-Host "No cached MSI found, will download"
+          exit 1
+        }
+
     - name: Install Twingate (Linux)
-      if: runner.os == 'Linux' && (steps.cache-twingate.outputs.cache-hit != 'true' || steps.validate-cache.outputs.valid != 'true' || steps.twingate-version.outputs.version == 'unknown')
+      if: runner.os == 'Linux' && (steps.cache-twingate-linux.outputs.cache-hit != 'true' || steps.validate-cache-linux.outputs.valid != 'true' || steps.twingate-version-linux.outputs.version == 'unknown')
       shell: bash
       run: |
         # Import Twingate GPG key for signature verification
@@ -97,18 +199,40 @@ runs:
         sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/twingate.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
 
         # Download all packages to cache if caching is enabled
-        if [ "${{ steps.twingate-version.outputs.version }}" != "unknown" ]; then
-          CACHE_DIR="${HOME:-/home/$USER}/.twingate-cache"
-          mkdir -p "$CACHE_DIR"
+        if [ "${{ steps.twingate-version-linux.outputs.version }}" != "unknown" ]; then
+          mkdir -p ~/.twingate-cache
           # Download Twingate and all dependencies to cache directory
-          sudo apt-get install -yq --download-only -o Dir::Cache::Archives="$CACHE_DIR" twingate
+          sudo apt-get install -yq --download-only -o Dir::Cache::Archives="$HOME/.twingate-cache" twingate
           # Install to resolve any missing dependencies, then download them
-          sudo apt-get install -yq --download-only -o Dir::Cache::Archives="$CACHE_DIR" -f
+          sudo apt-get install -yq --download-only -o Dir::Cache::Archives="$HOME/.twingate-cache" -f
           # Fix permissions so cache action can save files
-          sudo chown -R "$(id -u)":"$(id -g)" "$CACHE_DIR"
+          sudo chown -R "$(id -u)":"$(id -g)" "$HOME/.twingate-cache"
         fi
 
         sudo apt install -yq twingate
+
+    - name: Download and cache Twingate MSI (Windows)
+      if: runner.os == 'Windows' && (steps.cache-twingate-windows.outputs.cache-hit != 'true' || steps.validate-cache-windows.outputs.valid != 'true' || steps.twingate-version-windows.outputs.version == 'unknown')
+      shell: powershell
+      run: |
+        # Download MSI
+        $msiUrl = "https://api.twingate.com/download/windows?installer=msi"
+        Write-Host "Downloading Twingate from $msiUrl"
+        Invoke-WebRequest -Uri $msiUrl -OutFile ".\twingate_client.msi"
+
+        # Cache the MSI if caching is enabled
+        if ('${{ steps.twingate-version-windows.outputs.version }}' -ne 'unknown') {
+          $cacheDir = "${{ runner.temp }}\twingate-cache"
+          if (-not (Test-Path $cacheDir)) {
+            New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
+          }
+
+          $version = '${{ steps.twingate-version-windows.outputs.version }}'
+          $msiCachePath = "$cacheDir\twingate-client-$version.msi"
+          if ('${{ inputs.debug }}' -eq 'true') { Write-Host "[DEBUG] Caching MSI to $msiCachePath" }
+          Copy-Item -Path ".\twingate_client.msi" -Destination $msiCachePath -Force
+          if ('${{ inputs.debug }}' -eq 'true') { Get-ChildItem -Path $cacheDir | ForEach-Object { Write-Host "[DEBUG] Cache: $($_.Name) ($($_.Length) bytes)" } }
+        }
     
     - name: Setup and start Twingate (Linux)
       if: runner.os == 'Linux'
@@ -155,19 +279,18 @@ runs:
           exit 1
         fi
 
-    - name: Install and Start Twingate (Windows)
+    - name: Setup and Start Twingate (Windows)
       if: runner.os == 'Windows'
       shell: powershell
       run: |
-          Invoke-WebRequest https://api.twingate.com/download/windows?installer=msi -OutFile .\twingate_client.msi
+        # Install Twingate client and start service
+        Set-Content .\key.json  '${{ inputs.service-key }}'
+        $key_path = (Get-Item .\key.json | Resolve-Path).ProviderPath
 
-          Set-Content .\key.json  '${{ inputs.service-key }}'
-          $key_path = (Get-Item .\key.json | Resolve-Path).ProviderPath
+        Start-Process msiexec.exe -Wait -ArgumentList "/i twingate_client.msi /l*v install.log log_level=debug service_secret=$key_path /quiet"
 
-          Start-Process msiexec.exe -Wait -ArgumentList "/i twingate_client.msi /l*v install.log log_level=debug service_secret=$key_path /quiet"
+        Start-Sleep -Seconds 1
+        Start-Service twingate.service
 
-          Start-Sleep -Seconds 1
-          Start-Service twingate.service
-
-          Start-Sleep -Seconds 14
-          Get-Service twingate.service
+        Start-Sleep -Seconds 14
+        Get-Service twingate.service
