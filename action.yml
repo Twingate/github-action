@@ -36,11 +36,15 @@ runs:
       run: |
         VERSION=$(curl -sf https://packages.twingate.com/apt/Packages | awk '/^Package: twingate$/,/^Version:/ {if (/^Version:/) print $2}' | sort -V | tail -1)
         if [ -z "$VERSION" ]; then
-          echo "Failed to fetch version, proceeding without cache"
+          if [ "${{ inputs.debug }}" = "true" ]; then
+            echo "Failed to fetch version, proceeding without cache"
+          fi
           echo "version=unknown" >> $GITHUB_OUTPUT
         else
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Latest Twingate version: $VERSION"
+          if [ "${{ inputs.debug }}" = "true" ]; then
+            echo "Latest Twingate version: $VERSION"
+          fi
         fi
 
         # Get OS version for cache key
@@ -63,7 +67,7 @@ runs:
 
           if ($finalUrl -match 'versions/([\d.]+)/') {
             $version = $matches[1]
-            Write-Host "Latest Twingate version: $version"
+            if ('${{ inputs.debug }}' -eq 'true') { Write-Host "Latest Twingate version: $version" }
             Add-Content -Path $env:GITHUB_OUTPUT -Value "version=$version"
           } else {
             if ('${{ inputs.debug }}' -eq 'true') { Write-Host "[DEBUG] Could not extract version from URL" }
@@ -121,14 +125,20 @@ runs:
       run: |
         DEB_FILE=$(ls ~/.twingate-cache/twingate*.deb 2>/dev/null | head -1)
         if [ -z "$DEB_FILE" ]; then
-          echo "No .deb file found in cache"
+          if [ "${{ inputs.debug }}" = "true" ]; then
+            echo "No .deb file found in cache"
+          fi
           echo "valid=false" >> $GITHUB_OUTPUT
         elif ! dpkg-deb --info "$DEB_FILE" >/dev/null 2>&1; then
-          echo "Cached .deb is corrupted"
+          if [ "${{ inputs.debug }}" = "true" ]; then
+            echo "Cached .deb is corrupted"
+          fi
           rm -rf ~/.twingate-cache/*
           echo "valid=false" >> $GITHUB_OUTPUT
         else
-          echo "Cache is valid"
+          if [ "${{ inputs.debug }}" = "true" ]; then
+            echo "Cache is valid"
+          fi
           echo "valid=true" >> $GITHUB_OUTPUT
         fi
 
@@ -141,7 +151,7 @@ runs:
         $msiFiles = Get-ChildItem -Path $cacheDir -Filter "twingate*.msi" -ErrorAction SilentlyContinue
 
         if ($msiFiles.Count -eq 0) {
-          Write-Host "No MSI file found in cache"
+          if ('${{ inputs.debug }}' -eq 'true') { Write-Host "No MSI file found in cache" }
           Add-Content -Path $env:GITHUB_OUTPUT -Value "valid=false"
         } else {
           try {
@@ -150,15 +160,15 @@ runs:
             # Try to get MSI properties - this validates the MSI file
             $msiInfo = Get-ItemProperty -Path $msiFile
             if (-not $msiInfo) {
-              Write-Host "Cached MSI is corrupted"
+              if ('${{ inputs.debug }}' -eq 'true') { Write-Host "Cached MSI is corrupted" }
               Remove-Item -Path $cacheDir -Recurse -Force -ErrorAction SilentlyContinue
               Add-Content -Path $env:GITHUB_OUTPUT -Value "valid=false"
             } else {
-              Write-Host "Cache is valid"
+              if ('${{ inputs.debug }}' -eq 'true') { Write-Host "Cache is valid" }
               Add-Content -Path $env:GITHUB_OUTPUT -Value "valid=true"
             }
           } catch {
-            Write-Host "Cached MSI is corrupted: $_"
+            if ('${{ inputs.debug }}' -eq 'true') { Write-Host "Cached MSI is corrupted: $_" }
             Remove-Item -Path $cacheDir -Recurse -Force -ErrorAction SilentlyContinue
             Add-Content -Path $env:GITHUB_OUTPUT -Value "valid=false"
           }
@@ -168,7 +178,9 @@ runs:
       if: runner.os == 'Linux' && inputs.cache == 'true' && steps.validate-cache-linux.outputs.valid == 'true'
       shell: bash
       run: |
-        echo "Installing Twingate from cache"
+        if [ "${{ inputs.debug }}" = "true" ]; then
+          echo "Installing Twingate from cache"
+        fi
         # Install all packages from cache directory (twingate + dependencies)
         sudo dpkg -i ~/.twingate-cache/*.deb || true
         sudo apt-get install -f -yq
@@ -177,15 +189,15 @@ runs:
       if: runner.os == 'Windows' && inputs.cache == 'true' && steps.validate-cache-windows.outputs.valid == 'true'
       shell: powershell
       run: |
-        Write-Host "Copying cached MSI to working directory"
+        if ('${{ inputs.debug }}' -eq 'true') { Write-Host "Copying cached MSI to working directory" }
         $cacheDir = "${{ runner.temp }}\twingate-cache"
         $msiFile = Get-ChildItem -Path $cacheDir -Filter "twingate*.msi" | Select-Object -First 1
 
         if ($msiFile) {
-          Write-Host "Using cached MSI: $($msiFile.Name)"
+          if ('${{ inputs.debug }}' -eq 'true') { Write-Host "Using cached MSI: $($msiFile.Name)" }
           Copy-Item -Path $msiFile.FullName -Destination ".\twingate_client.msi" -Force
         } else {
-          Write-Host "No cached MSI found, will download"
+          if ('${{ inputs.debug }}' -eq 'true') { Write-Host "No cached MSI found, will download" }
           exit 1
         }
 
@@ -221,7 +233,7 @@ runs:
       run: |
         # Download MSI
         $msiUrl = "https://api.twingate.com/download/windows?installer=msi"
-        Write-Host "Downloading Twingate from $msiUrl"
+        if ('${{ inputs.debug }}' -eq 'true') { Write-Host "Downloading Twingate from $msiUrl" }
         Invoke-WebRequest -Uri $msiUrl -OutFile ".\twingate_client.msi"
 
         # Cache the MSI if caching is enabled
