@@ -36,6 +36,7 @@ jobs:
 
         - uses: ./.github/actions/test
           with:
+            cache: false
             service-key: ${{ secrets[matrix.service-key] }}
 
         - name: Twingate logs
@@ -106,6 +107,7 @@ jobs:
 
         - uses: ./.github/actions/test
           with:
+            cache: false
             service-key: ${{ secrets[matrix.service-key] }}
 
         - name: Access a secure resource
