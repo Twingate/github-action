@@ -371,8 +371,16 @@ runs:
         Set-Content .\key.json  '${{ inputs.service-key }}'
         $key_path = (Get-Item .\key.json | Resolve-Path).ProviderPath
 
-        info_log "Installing Twingate client..."
-        Start-Process msiexec.exe -Wait -ArgumentList "/i twingate_client.msi /l*v install.log log_level=debug service_secret=$key_path /quiet"
+        try {
+          info_log "Installing Twingate client..."
+          Start-Process msiexec.exe -Wait -ArgumentList "/i twingate_client.msi /l*v install.log log_level=debug service_secret=$key_path /quiet"
+        } finally {
+          # Clean up the secret file immediately after MSI exits
+          if (Test-Path .\key.json) {
+            Remove-Item .\key.json -Force -ErrorAction SilentlyContinue
+            debug_log "Cleaned up temporary secret file"
+          }
+        }
 
         info_log "Starting Twingate service..."
         Start-Sleep -Seconds 1
