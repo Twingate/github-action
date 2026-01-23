@@ -2,6 +2,7 @@
 # Usage: . ./scripts/logging.ps1
 #        log DEBUG "message"
 #        log INFO "message"
+#        log WARNING "message"
 #        log ERROR "message"
 
 function log {

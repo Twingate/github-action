@@ -330,16 +330,116 @@ runs:
           }
         }
 
-        log INFO "Starting Twingate service..."
-        Start-Sleep -Seconds 1
-        Start-Service twingate.service
+        # Start Twingate service with comprehensive retry logic
+        $MAX_RETRIES = 5
+        $WAIT_TIME = 5
+        $retry_count = 0
+        $service_started = $false
+        $SERVICE_NAME = 'twingate.service'
 
-        log INFO "Waiting for service to initialize..."
-        Start-Sleep -Seconds 14
-        $service = Get-Service twingate.service
-        if ($service.Status -eq 'Running') {
-          log INFO "Twingate service started successfully"
-        } else {
-          log ERROR "Twingate service failed to start"
+        while ($retry_count -lt $MAX_RETRIES) {
+          log INFO "Starting Twingate service (attempt $($retry_count + 1)/$MAX_RETRIES)..."
+
+          # Check if service exists
+          try {
+            $service = Get-Service $SERVICE_NAME -ErrorAction Stop
+            log DEBUG "Service found: $($service.Name)"
+          } catch {
+            log ERROR "Service '$SERVICE_NAME' not found: $_"
+            exit 1
+          }
+
+          # Attempt to start the service
+          try {
+            if ($service.Status -eq 'Stopped') {
+              Start-Service $SERVICE_NAME -ErrorAction Stop
+              log INFO "Service start command executed successfully"
+            } elseif ($service.Status -eq 'Running') {
+              log DEBUG "Service is already in Running state"
+            } else {
+              log WARNING "Service is in $($service.Status) state, attempting to start anyway"
+              Start-Service $SERVICE_NAME -ErrorAction Stop
+            }
+          } catch {
+            log ERROR "Failed to start service: $_"
+            $retry_count++
+            if ($retry_count -lt $MAX_RETRIES) {
+              log INFO "Retrying service start in $WAIT_TIME seconds..."
+              Start-Sleep -Seconds $WAIT_TIME
+              $WAIT_TIME += 5
+              continue
+            } else {
+              break
+            }
+          }
+
+          log INFO "Waiting $WAIT_TIME seconds for Twingate service to initialize..."
+          Start-Sleep -Seconds $WAIT_TIME
+
+          # Verify service is actually running
+          $status_check_attempts = 3
+          $status_check_delay = 2
+          $final_status = $null
+
+          for ($i = 0; $i -lt $status_check_attempts; $i++) {
+            try {
+              $service = Get-Service $SERVICE_NAME -ErrorAction Stop
+              $final_status = $service.Status
+              log INFO "Service status check #$($i + 1): $final_status"
+
+              if ($final_status -eq 'Running') {
+                log DEBUG "Service confirmed as Running"
+                break
+              } elseif ($i -lt ($status_check_attempts - 1)) {
+                log DEBUG "Service not yet Running, waiting $status_check_delay seconds before next check..."
+                Start-Sleep -Seconds $status_check_delay
+              }
+            } catch {
+              log ERROR "Failed to check service status: $_"
+              $final_status = 'Unknown'
+            }
+          }
+
+          if ($final_status -eq 'Running') {
+            log INFO "Twingate service is running successfully."
+            if ($env:DEBUG_MODE -eq 'true') {
+              try {
+                $serviceDetails = Get-Service $SERVICE_NAME -ErrorAction Stop
+                log DEBUG "Service details: Name=$($serviceDetails.Name), Status=$($serviceDetails.Status), DisplayName=$($serviceDetails.DisplayName)"
+              } catch {
+                log DEBUG "Could not retrieve service details: $_"
+              }
+            }
+            $service_started = $true
+            break
+          } else {
+            log ERROR "Service status is '$final_status', not Running"
+
+            # Attempt to stop the service before retrying
+            try {
+              $service = Get-Service $SERVICE_NAME -ErrorAction Stop
+              if ($service.Status -ne 'Stopped') {
+                log INFO "Stopping service before retry..."
+                Stop-Service $SERVICE_NAME -ErrorAction Stop
+                Start-Sleep -Seconds 2
+              }
+            } catch {
+              log DEBUG "Could not stop service: $_"
+            }
+          }
+
+          # Increment retry counter and wait time
+          $retry_count++
+          $WAIT_TIME += 5
+
+          if ($retry_count -lt $MAX_RETRIES) {
+            log INFO "Twingate service is not running. Next initialization wait will be $WAIT_TIME seconds..."
+          }
+        }
+
+        if (-not $service_started) {
+          log ERROR "Twingate service failed to start after $MAX_RETRIES retries. Check logs for details."
           exit 1
         }
+
+        log INFO "Twingate service startup completed successfully"
