@@ -117,7 +117,7 @@ runs:
       shell: bash
       run: |
         export DEBUG_MODE='${{ inputs.debug }}'
-        source ./scripts/logging.sh
+        source ./scripts/linux-helpers.sh
 
         log DEBUG "Installing Twingate from cache"
         # Install all packages from cache directory (twingate + dependencies)
@@ -129,7 +129,7 @@ runs:
       shell: powershell
       run: |
         $env:DEBUG_MODE = '${{ inputs.debug }}'
-        . ./scripts/logging.ps1
+        . ./scripts/windows-helpers.ps1
 
         log DEBUG "Copying cached MSI to working directory"
         $cacheDir = "${{ runner.temp }}\twingate-cache"
@@ -174,7 +174,7 @@ runs:
       shell: powershell
       run: |
         $env:DEBUG_MODE = '${{ inputs.debug }}'
-        . ./scripts/logging.ps1
+        . ./scripts/windows-helpers.ps1
 
         # Download MSI
         $msiUrl = "https://api.twingate.com/download/windows?installer=msi"
@@ -200,7 +200,7 @@ runs:
       shell: bash
       run: |
         export DEBUG_MODE='${{ inputs.debug }}'
-        source ./scripts/logging.sh
+        source ./scripts/linux-helpers.sh
 
         echo '${{ inputs.service-key }}' | sudo twingate setup --headless -
         MAX_RETRIES=5
@@ -248,7 +248,7 @@ runs:
       shell: powershell
       run: |
         $env:DEBUG_MODE = '${{ inputs.debug }}'
-        . ./scripts/logging.ps1
+        . ./scripts/windows-helpers.ps1
 
         # Install Twingate client and start service
         Set-Content .\key.json  '${{ inputs.service-key }}'
