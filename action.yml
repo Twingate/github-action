@@ -26,11 +26,7 @@ runs:
       if: runner.os != 'Linux' && runner.os != 'Windows'
       shell: bash
       run: |
-        log() {
-          local level=$1
-          shift
-          echo "[$level] $@"
-        }
+        source ./scripts/logging.sh
         log ERROR "Unsupported Runner OS: ${{ runner.os }}"
         exit 1
 
@@ -39,14 +35,8 @@ runs:
       id: twingate-version-linux
       shell: bash
       run: |
-        log() {
-          local level=$1
-          shift
-          if [ "$level" = "DEBUG" ] && [ "${{ inputs.debug }}" != "true" ]; then
-            return
-          fi
-          echo "[$level] $@"
-        }
+        export DEBUG_MODE='${{ inputs.debug }}'
+        source ./scripts/logging.sh
 
         VERSION=$(curl -sf https://packages.twingate.com/apt/Packages | awk '/^Package: twingate$/,/^Version:/ {if (/^Version:/) print $2}' | sort -V | tail -1)
         if [ -z "$VERSION" ]; then
@@ -66,13 +56,8 @@ runs:
       id: twingate-version-windows
       shell: powershell
       run: |
-        function log {
-          param([string]$Level, [string]$Message)
-          if ($Level -eq 'DEBUG' -and '${{ inputs.debug }}' -ne 'true') {
-            return
-          }
-          Write-Host "[$Level] $Message"
-        }
+        $env:DEBUG_MODE = '${{ inputs.debug }}'
+        . ./scripts/logging.ps1
 
         try {
           $msiUrl = "https://api.twingate.com/download/windows?installer=msi"
@@ -141,14 +126,8 @@ runs:
       id: validate-cache-linux
       shell: bash
       run: |
-        log() {
-          local level=$1
-          shift
-          if [ "$level" = "DEBUG" ] && [ "${{ inputs.debug }}" != "true" ]; then
-            return
-          fi
-          echo "[$level] $@"
-        }
+        export DEBUG_MODE='${{ inputs.debug }}'
+        source ./scripts/logging.sh
 
         DEB_FILE=$(ls ~/.twingate-cache/twingate*.deb 2>/dev/null | head -1)
         if [ -z "$DEB_FILE" ]; then
@@ -168,13 +147,8 @@ runs:
       id: validate-cache-windows
       shell: powershell
       run: |
-        function log {
-          param([string]$Level, [string]$Message)
-          if ($Level -eq 'DEBUG' -and '${{ inputs.debug }}' -ne 'true') {
-            return
-          }
-          Write-Host "[$Level] $Message"
-        }
+        $env:DEBUG_MODE = '${{ inputs.debug }}'
+        . ./scripts/logging.ps1
 
         $cacheDir = "${{ runner.temp }}\twingate-cache"
         $msiFiles = Get-ChildItem -Path $cacheDir -Filter "twingate*.msi" -ErrorAction SilentlyContinue
@@ -207,14 +181,8 @@ runs:
       if: runner.os == 'Linux' && inputs.cache == 'true' && steps.validate-cache-linux.outputs.valid == 'true'
       shell: bash
       run: |
-        log() {
-          local level=$1
-          shift
-          if [ "$level" = "DEBUG" ] && [ "${{ inputs.debug }}" != "true" ]; then
-            return
-          fi
-          echo "[$level] $@"
-        }
+        export DEBUG_MODE='${{ inputs.debug }}'
+        source ./scripts/logging.sh
 
         log DEBUG "Installing Twingate from cache"
         # Install all packages from cache directory (twingate + dependencies)
@@ -225,13 +193,8 @@ runs:
       if: runner.os == 'Windows' && inputs.cache == 'true' && steps.validate-cache-windows.outputs.valid == 'true'
       shell: powershell
       run: |
-        function log {
-          param([string]$Level, [string]$Message)
-          if ($Level -eq 'DEBUG' -and '${{ inputs.debug }}' -ne 'true') {
-            return
-          }
-          Write-Host "[$Level] $Message"
-        }
+        $env:DEBUG_MODE = '${{ inputs.debug }}'
+        . ./scripts/logging.ps1
 
         log DEBUG "Copying cached MSI to working directory"
         $cacheDir = "${{ runner.temp }}\twingate-cache"
@@ -275,13 +238,8 @@ runs:
       if: runner.os == 'Windows' && (inputs.cache != 'true' || steps.cache-twingate-windows.outputs.cache-hit != 'true' || steps.validate-cache-windows.outputs.valid != 'true' || steps.twingate-version-windows.outputs.version == 'unknown')
       shell: powershell
       run: |
-        function log {
-          param([string]$Level, [string]$Message)
-          if ($Level -eq 'DEBUG' -and '${{ inputs.debug }}' -ne 'true') {
-            return
-          }
-          Write-Host "[$Level] $Message"
-        }
+        $env:DEBUG_MODE = '${{ inputs.debug }}'
+        . ./scripts/logging.ps1
 
         # Download MSI
         $msiUrl = "https://api.twingate.com/download/windows?installer=msi"
@@ -299,23 +257,15 @@ runs:
           $msiCachePath = "$cacheDir\twingate-client-$version.msi"
           log DEBUG "Caching MSI to $msiCachePath"
           Copy-Item -Path ".\twingate_client.msi" -Destination $msiCachePath -Force
-          Get-ChildItem -Path $cacheDir | ForEach-Object { debug_log "Cache: $($_.Name) ($($_.Length) bytes)" }
+          Get-ChildItem -Path $cacheDir | ForEach-Object { log DEBUG "Cache: $($_.Name) ($($_.Length) bytes)" }
         }
     
     - name: Setup and start Twingate (Linux)
       if: runner.os == 'Linux'
       shell: bash
       run: |
-
-        log() {
-          local level=$1
-          shift
-          if [ "$level" = "DEBUG" ] && [ "${{ inputs.debug }}" != "true" ]; then
-            return
-          fi
-          echo "[$level] $@"
-        }
-
+        export DEBUG_MODE='${{ inputs.debug }}'
+        source ./scripts/logging.sh
 
         echo '${{ inputs.service-key }}' | sudo twingate setup --headless -
         MAX_RETRIES=5
@@ -362,8 +312,8 @@ runs:
       if: runner.os == 'Windows'
       shell: powershell
       run: |
-
-
+        $env:DEBUG_MODE = '${{ inputs.debug }}'
+        . ./scripts/logging.ps1
 
         # Install Twingate client and start service
         Set-Content .\key.json  '${{ inputs.service-key }}'
