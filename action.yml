@@ -26,10 +26,8 @@ runs:
       if: runner.os != 'Linux' && runner.os != 'Windows'
       shell: bash
       run: |
-        error_log() {
-          echo "[ERROR] $1"
-        }
-        error_log "Unsupported Runner OS: ${{ runner.os }}"
+        source ./scripts/logging.sh
+        log ERROR "Unsupported Runner OS: ${{ runner.os }}"
         exit 1
 
     - name: Get latest Twingate version (Linux)
@@ -37,19 +35,16 @@ runs:
       id: twingate-version-linux
       shell: bash
       run: |
-        debug_log() {
-          if [ "${{ inputs.debug }}" = "true" ]; then
-            echo "[DEBUG] $1"
-          fi
-        }
+        export DEBUG_MODE='${{ inputs.debug }}'
+        source ./scripts/logging.sh
 
         VERSION=$(curl -sf https://packages.twingate.com/apt/Packages | awk '/^Package: twingate$/,/^Version:/ {if (/^Version:/) print $2}' | sort -V | tail -1)
         if [ -z "$VERSION" ]; then
-          debug_log "Failed to fetch version, proceeding without cache"
+          log DEBUG "Failed to fetch version, proceeding without cache"
           echo "version=unknown" >> $GITHUB_OUTPUT
         else
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          debug_log "Latest Twingate version: $VERSION"
+          log DEBUG "Latest Twingate version: $VERSION"
         fi
 
         # Get OS version for cache key
@@ -61,42 +56,38 @@ runs:
       id: twingate-version-windows
       shell: powershell
       run: |
-        function debug_log {
-          param([string]$Message)
-          if ('${{ inputs.debug }}' -eq 'true') {
-            Write-Host "[DEBUG] $Message"
-          }
-        }
+        $env:DEBUG_MODE = '${{ inputs.debug }}'
+        . ./scripts/logging.ps1
 
         try {
           $msiUrl = "https://api.twingate.com/download/windows?installer=msi"
-          debug_log "Fetching from $msiUrl"
+          log DEBUG "Fetching from $msiUrl"
 
           $response = Invoke-WebRequest -Uri $msiUrl -Method Get -UseBasicParsing -MaximumRedirection 0 -ErrorAction SilentlyContinue
           $finalUrl = $response.Headers.Location
 
-          debug_log "Redirect location: $finalUrl"
+          log DEBUG "Redirect location: $finalUrl"
 
           if ($finalUrl -match 'versions/([\d.]+)/') {
             $version = $matches[1]
-            debug_log "Latest Twingate version: $version"
+            log DEBUG "Latest Twingate version: $version"
             Add-Content -Path $env:GITHUB_OUTPUT -Value "version=$version"
           } else {
-            debug_log "Could not extract version from URL"
+            log DEBUG "Could not extract version from URL"
             Add-Content -Path $env:GITHUB_OUTPUT -Value "version=unknown"
           }
         } catch {
-          debug_log "Error: $_"
+          log DEBUG "Error: $_"
           Add-Content -Path $env:GITHUB_OUTPUT -Value "version=unknown"
         }
 
         try {
           $osVersion = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion").CurrentBuildNumber
         } catch {
-          debug_log "Failed to read Windows build number from registry: $_"
+          log DEBUG "Failed to read Windows build number from registry: $_"
           $osVersion = "unknown"
         }
-        debug_log "Windows build number: $osVersion"
+        log DEBUG "Windows build number: $osVersion"
         Add-Content -Path $env:GITHUB_OUTPUT -Value "os_version=$osVersion"
 
     - name: Setup cache directory (Linux)
@@ -135,22 +126,19 @@ runs:
       id: validate-cache-linux
       shell: bash
       run: |
-        debug_log() {
-          if [ "${{ inputs.debug }}" = "true" ]; then
-            echo "[DEBUG] $1"
-          fi
-        }
+        export DEBUG_MODE='${{ inputs.debug }}'
+        source ./scripts/logging.sh
 
         DEB_FILE=$(ls ~/.twingate-cache/twingate*.deb 2>/dev/null | head -1)
         if [ -z "$DEB_FILE" ]; then
-          debug_log "No .deb file found in cache"
+          log DEBUG "No .deb file found in cache"
           echo "valid=false" >> $GITHUB_OUTPUT
         elif ! dpkg-deb --info "$DEB_FILE" >/dev/null 2>&1; then
-          debug_log "Cached .deb is corrupted"
+          log DEBUG "Cached .deb is corrupted"
           rm -rf ~/.twingate-cache/*
           echo "valid=false" >> $GITHUB_OUTPUT
         else
-          debug_log "Cache is valid"
+          log DEBUG "Cache is valid"
           echo "valid=true" >> $GITHUB_OUTPUT
         fi
 
@@ -159,18 +147,14 @@ runs:
       id: validate-cache-windows
       shell: powershell
       run: |
-        function debug_log {
-          param([string]$Message)
-          if ('${{ inputs.debug }}' -eq 'true') {
-            Write-Host "[DEBUG] $Message"
-          }
-        }
+        $env:DEBUG_MODE = '${{ inputs.debug }}'
+        . ./scripts/logging.ps1
 
         $cacheDir = "${{ runner.temp }}\twingate-cache"
         $msiFiles = Get-ChildItem -Path $cacheDir -Filter "twingate*.msi" -ErrorAction SilentlyContinue
 
         if ($msiFiles.Count -eq 0) {
-          debug_log "No MSI file found in cache"
+          log DEBUG "No MSI file found in cache"
           Add-Content -Path $env:GITHUB_OUTPUT -Value "valid=false"
         } else {
           try {
@@ -179,15 +163,15 @@ runs:
             # Try to get MSI properties - this validates the MSI file
             $msiInfo = Get-ItemProperty -Path $msiFile
             if (-not $msiInfo) {
-              debug_log "Cached MSI is corrupted"
+              log DEBUG "Cached MSI is corrupted"
               Remove-Item -Path $cacheDir -Recurse -Force -ErrorAction SilentlyContinue
               Add-Content -Path $env:GITHUB_OUTPUT -Value "valid=false"
             } else {
-              debug_log "Cache is valid"
+              log DEBUG "Cache is valid"
               Add-Content -Path $env:GITHUB_OUTPUT -Value "valid=true"
             }
           } catch {
-            debug_log "Cached MSI is corrupted: $_"
+            log DEBUG "Cached MSI is corrupted: $_"
             Remove-Item -Path $cacheDir -Recurse -Force -ErrorAction SilentlyContinue
             Add-Content -Path $env:GITHUB_OUTPUT -Value "valid=false"
           }
@@ -197,13 +181,10 @@ runs:
       if: runner.os == 'Linux' && inputs.cache == 'true' && steps.validate-cache-linux.outputs.valid == 'true'
       shell: bash
       run: |
-        debug_log() {
-          if [ "${{ inputs.debug }}" = "true" ]; then
-            echo "[DEBUG] $1"
-          fi
-        }
+        export DEBUG_MODE='${{ inputs.debug }}'
+        source ./scripts/logging.sh
 
-        debug_log "Installing Twingate from cache"
+        log DEBUG "Installing Twingate from cache"
         # Install all packages from cache directory (twingate + dependencies)
         sudo dpkg -i ~/.twingate-cache/*.deb || true
         sudo apt-get install -f -yq
@@ -212,22 +193,18 @@ runs:
       if: runner.os == 'Windows' && inputs.cache == 'true' && steps.validate-cache-windows.outputs.valid == 'true'
       shell: powershell
       run: |
-        function debug_log {
-          param([string]$Message)
-          if ('${{ inputs.debug }}' -eq 'true') {
-            Write-Host "[DEBUG] $Message"
-          }
-        }
+        $env:DEBUG_MODE = '${{ inputs.debug }}'
+        . ./scripts/logging.ps1
 
-        debug_log "Copying cached MSI to working directory"
+        log DEBUG "Copying cached MSI to working directory"
         $cacheDir = "${{ runner.temp }}\twingate-cache"
         $msiFile = Get-ChildItem -Path $cacheDir -Filter "twingate*.msi" | Select-Object -First 1
 
         if ($msiFile) {
-          debug_log "Using cached MSI: $($msiFile.Name)"
+          log DEBUG "Using cached MSI: $($msiFile.Name)"
           Copy-Item -Path $msiFile.FullName -Destination ".\twingate_client.msi" -Force
         } else {
-          debug_log "No cached MSI found, will download"
+          log DEBUG "No cached MSI found, will download"
           exit 1
         }
 
@@ -261,16 +238,12 @@ runs:
       if: runner.os == 'Windows' && (inputs.cache != 'true' || steps.cache-twingate-windows.outputs.cache-hit != 'true' || steps.validate-cache-windows.outputs.valid != 'true' || steps.twingate-version-windows.outputs.version == 'unknown')
       shell: powershell
       run: |
-        function debug_log {
-          param([string]$Message)
-          if ('${{ inputs.debug }}' -eq 'true') {
-            Write-Host "[DEBUG] $Message"
-          }
-        }
+        $env:DEBUG_MODE = '${{ inputs.debug }}'
+        . ./scripts/logging.ps1
 
         # Download MSI
         $msiUrl = "https://api.twingate.com/download/windows?installer=msi"
-        debug_log "Downloading Twingate from $msiUrl"
+        log DEBUG "Downloading Twingate from $msiUrl"
         Invoke-WebRequest -Uri $msiUrl -OutFile ".\twingate_client.msi"
 
         # Cache the MSI if caching is enabled
@@ -282,28 +255,17 @@ runs:
 
           $version = '${{ steps.twingate-version-windows.outputs.version }}'
           $msiCachePath = "$cacheDir\twingate-client-$version.msi"
-          debug_log "Caching MSI to $msiCachePath"
+          log DEBUG "Caching MSI to $msiCachePath"
           Copy-Item -Path ".\twingate_client.msi" -Destination $msiCachePath -Force
-          Get-ChildItem -Path $cacheDir | ForEach-Object { debug_log "Cache: $($_.Name) ($($_.Length) bytes)" }
+          Get-ChildItem -Path $cacheDir | ForEach-Object { log DEBUG "Cache: $($_.Name) ($($_.Length) bytes)" }
         }
     
     - name: Setup and start Twingate (Linux)
       if: runner.os == 'Linux'
       shell: bash
       run: |
-        info_log() {
-          echo "[INFO] $1"
-        }
-
-        debug_log() {
-          if [ "${{ inputs.debug }}" = "true" ]; then
-            echo "[DEBUG] $1"
-          fi
-        }
-
-        error_log() {
-          echo "[ERROR] $1"
-        }
+        export DEBUG_MODE='${{ inputs.debug }}'
+        source ./scripts/logging.sh
 
         echo '${{ inputs.service-key }}' | sudo twingate setup --headless -
         MAX_RETRIES=5
@@ -311,18 +273,18 @@ runs:
         n=0
 
         while [ $n -lt $MAX_RETRIES ]; do
-          info_log "Starting Twingate service..."
+          log INFO "Starting Twingate service..."
           set +xe
           twingate start
 
-          info_log "Waiting $WAIT_TIME seconds for Twingate service to start..."
+          log INFO "Waiting $WAIT_TIME seconds for Twingate service to start..."
           sleep $WAIT_TIME
 
           status=$(twingate status)
-          info_log "Twingate service status: '$status'"
+          log INFO "Twingate service status: '$status'"
 
           if [ "$status" = "online" ]; then
-            info_log "Twingate service is connected."
+            log INFO "Twingate service is connected."
             if [ "${{ inputs.debug }}" = "true" ]; then
               twingate resources
             fi
@@ -338,11 +300,11 @@ runs:
           n=$((n+1))
           WAIT_TIME=$((WAIT_TIME+5))
 
-          info_log "Twingate service is not connected. Retrying..."
+          log INFO "Twingate service is not connected. Retrying..."
         done
 
         if [ $n -eq $MAX_RETRIES ]; then
-          error_log "Twingate service failed to connect."
+          log ERROR "Twingate service failed to connect."
           exit 1
         fi
 
@@ -350,40 +312,34 @@ runs:
       if: runner.os == 'Windows'
       shell: powershell
       run: |
-        function info_log {
-          param([string]$Message)
-          Write-Host "[INFO] $Message"
-        }
-
-        function debug_log {
-          param([string]$Message)
-          if ('${{ inputs.debug }}' -eq 'true') {
-            Write-Host "[DEBUG] $Message"
-          }
-        }
-
-        function error_log {
-          param([string]$Message)
-          Write-Host "[ERROR] $Message"
-        }
+        $env:DEBUG_MODE = '${{ inputs.debug }}'
+        . ./scripts/logging.ps1
 
         # Install Twingate client and start service
         Set-Content .\key.json  '${{ inputs.service-key }}'
         $key_path = (Get-Item .\key.json | Resolve-Path).ProviderPath
 
-        info_log "Installing Twingate client..."
-        Start-Process msiexec.exe -Wait -ArgumentList "/i twingate_client.msi /l*v install.log log_level=debug service_secret=$key_path /quiet"
+        try {
+          log INFO "Installing Twingate client..."
+          Start-Process msiexec.exe -Wait -ArgumentList "/i twingate_client.msi /l*v install.log log_level=debug service_secret=$key_path /quiet"
+        } finally {
+          # Clean up the secret file immediately after MSI exits
+          if (Test-Path .\key.json) {
+            Remove-Item .\key.json -Force -ErrorAction SilentlyContinue
+            log DEBUG "Cleaned up temporary secret file"
+          }
+        }
 
-        info_log "Starting Twingate service..."
+        log INFO "Starting Twingate service..."
         Start-Sleep -Seconds 1
         Start-Service twingate.service
 
-        info_log "Waiting for service to initialize..."
+        log INFO "Waiting for service to initialize..."
         Start-Sleep -Seconds 14
         $service = Get-Service twingate.service
         if ($service.Status -eq 'Running') {
-          info_log "Twingate service started successfully"
+          log INFO "Twingate service started successfully"
         } else {
-          error_log "Twingate service failed to start"
+          log ERROR "Twingate service failed to start"
           exit 1
         }
