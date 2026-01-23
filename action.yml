@@ -438,7 +438,7 @@ runs:
         }
 
         if (-not $service_started) {
-          log ERROR "Twingate service failed to start after $MAX_RETRIES retries (waiting up to 75 seconds total)"
+          log ERROR "Twingate service failed to start after $MAX_RETRIES retries. Check logs for details."
           exit 1
         }
 
