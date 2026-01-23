@@ -373,6 +373,9 @@ runs:
             }
           }
 
+          log INFO "Waiting $WAIT_TIME seconds for Twingate service to initialize..."
+          Start-Sleep -Seconds $WAIT_TIME
+
           # Verify service is actually running
           $status_check_attempts = 3
           $status_check_delay = 2
