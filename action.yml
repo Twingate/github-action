@@ -433,7 +433,7 @@ runs:
           $WAIT_TIME += 5
 
           if ($retry_count -lt $MAX_RETRIES) {
-            log INFO "Twingate service is not running. Retrying in $WAIT_TIME seconds..."
+            log INFO "Twingate service is not running. Next initialization wait will be $WAIT_TIME seconds..."
           }
         }
 
