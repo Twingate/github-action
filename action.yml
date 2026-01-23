@@ -26,7 +26,7 @@ runs:
       if: runner.os != 'Linux' && runner.os != 'Windows'
       shell: bash
       run: |
-        source ./scripts/logging.sh
+        source ./scripts/linux-helpers.sh
         log ERROR "Unsupported Runner OS: ${{ runner.os }}"
         exit 1
 
@@ -36,19 +36,12 @@ runs:
       shell: bash
       run: |
         export DEBUG_MODE='${{ inputs.debug }}'
-        source ./scripts/logging.sh
+        source ./scripts/linux-helpers.sh
 
-        VERSION=$(curl -sf https://packages.twingate.com/apt/Packages | awk '/^Package: twingate$/,/^Version:/ {if (/^Version:/) print $2}' | sort -V | tail -1)
-        if [ -z "$VERSION" ]; then
-          log DEBUG "Failed to fetch version, proceeding without cache"
-          echo "version=unknown" >> $GITHUB_OUTPUT
-        else
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          log DEBUG "Latest Twingate version: $VERSION"
-        fi
+        VERSION=$(get_twingate_version)
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-        # Get OS version for cache key
-        OS_VERSION=$(grep VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"')
+        OS_VERSION=$(get_os_version)
         echo "os_version=$OS_VERSION" >> $GITHUB_OUTPUT
 
     - name: Get latest Twingate version (Windows)
@@ -57,37 +50,12 @@ runs:
       shell: powershell
       run: |
         $env:DEBUG_MODE = '${{ inputs.debug }}'
-        . ./scripts/logging.ps1
+        . ./scripts/windows-helpers.ps1
 
-        try {
-          $msiUrl = "https://api.twingate.com/download/windows?installer=msi"
-          log DEBUG "Fetching from $msiUrl"
+        $version = Get-TwingateVersion
+        Add-Content -Path $env:GITHUB_OUTPUT -Value "version=$version"
 
-          $response = Invoke-WebRequest -Uri $msiUrl -Method Get -UseBasicParsing -MaximumRedirection 0 -ErrorAction SilentlyContinue
-          $finalUrl = $response.Headers.Location
-
-          log DEBUG "Redirect location: $finalUrl"
-
-          if ($finalUrl -match 'versions/([\d.]+)/') {
-            $version = $matches[1]
-            log DEBUG "Latest Twingate version: $version"
-            Add-Content -Path $env:GITHUB_OUTPUT -Value "version=$version"
-          } else {
-            log DEBUG "Could not extract version from URL"
-            Add-Content -Path $env:GITHUB_OUTPUT -Value "version=unknown"
-          }
-        } catch {
-          log DEBUG "Error: $_"
-          Add-Content -Path $env:GITHUB_OUTPUT -Value "version=unknown"
-        }
-
-        try {
-          $osVersion = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion").CurrentBuildNumber
-        } catch {
-          log DEBUG "Failed to read Windows build number from registry: $_"
-          $osVersion = "unknown"
-        }
-        log DEBUG "Windows build number: $osVersion"
+        $osVersion = Get-OSVersion
         Add-Content -Path $env:GITHUB_OUTPUT -Value "os_version=$osVersion"
 
     - name: Setup cache directory (Linux)
@@ -127,20 +95,10 @@ runs:
       shell: bash
       run: |
         export DEBUG_MODE='${{ inputs.debug }}'
-        source ./scripts/logging.sh
+        source ./scripts/linux-helpers.sh
 
-        DEB_FILE=$(ls ~/.twingate-cache/twingate*.deb 2>/dev/null | head -1)
-        if [ -z "$DEB_FILE" ]; then
-          log DEBUG "No .deb file found in cache"
-          echo "valid=false" >> $GITHUB_OUTPUT
-        elif ! dpkg-deb --info "$DEB_FILE" >/dev/null 2>&1; then
-          log DEBUG "Cached .deb is corrupted"
-          rm -rf ~/.twingate-cache/*
-          echo "valid=false" >> $GITHUB_OUTPUT
-        else
-          log DEBUG "Cache is valid"
-          echo "valid=true" >> $GITHUB_OUTPUT
-        fi
+        VALID=$(validate_cache_linux)
+        echo "valid=$VALID" >> $GITHUB_OUTPUT
 
     - name: Validate cached MSI (Windows)
       if: runner.os == 'Windows' && inputs.cache == 'true' && steps.cache-twingate-windows.outputs.cache-hit == 'true'
@@ -148,34 +106,11 @@ runs:
       shell: powershell
       run: |
         $env:DEBUG_MODE = '${{ inputs.debug }}'
-        . ./scripts/logging.ps1
+        . ./scripts/windows-helpers.ps1
 
         $cacheDir = "${{ runner.temp }}\twingate-cache"
-        $msiFiles = Get-ChildItem -Path $cacheDir -Filter "twingate*.msi" -ErrorAction SilentlyContinue
-
-        if ($msiFiles.Count -eq 0) {
-          log DEBUG "No MSI file found in cache"
-          Add-Content -Path $env:GITHUB_OUTPUT -Value "valid=false"
-        } else {
-          try {
-            $msiFile = $msiFiles[0].FullName
-
-            # Try to get MSI properties - this validates the MSI file
-            $msiInfo = Get-ItemProperty -Path $msiFile
-            if (-not $msiInfo) {
-              log DEBUG "Cached MSI is corrupted"
-              Remove-Item -Path $cacheDir -Recurse -Force -ErrorAction SilentlyContinue
-              Add-Content -Path $env:GITHUB_OUTPUT -Value "valid=false"
-            } else {
-              log DEBUG "Cache is valid"
-              Add-Content -Path $env:GITHUB_OUTPUT -Value "valid=true"
-            }
-          } catch {
-            log DEBUG "Cached MSI is corrupted: $_"
-            Remove-Item -Path $cacheDir -Recurse -Force -ErrorAction SilentlyContinue
-            Add-Content -Path $env:GITHUB_OUTPUT -Value "valid=false"
-          }
-        }
+        $isValid = Validate-CacheWindows -CacheDir $cacheDir
+        Add-Content -Path $env:GITHUB_OUTPUT -Value "valid=$isValid"
 
     - name: Install Twingate from cache (Linux)
       if: runner.os == 'Linux' && inputs.cache == 'true' && steps.validate-cache-linux.outputs.valid == 'true'
