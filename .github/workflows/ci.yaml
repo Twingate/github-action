@@ -104,6 +104,7 @@ jobs:
           run: |
             New-Item -Path ".github/actions/test" -ItemType Directory -Force
             Copy-Item -Path "action.yml" -Destination ".github/actions/test/action.yml" -Force
+            Copy-Item -Path "scripts" -Destination ".github/actions/test/scripts" -Recurse -Force
 
         - uses: ./.github/actions/test
           with:
