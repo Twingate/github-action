@@ -1,4 +1,4 @@
-name: Release Verification
+name: Integration Tests
 
 on:
   push:
@@ -28,7 +28,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Test published action
-        uses: twingate/github-action@main
+        uses: twingate/github-action@published-action-tests
         with:
           service-key: ${{ secrets[matrix.service-key] }}
 
@@ -62,7 +62,7 @@ jobs:
     timeout-minutes: 6
     steps:
       - name: Test published action
-        uses: twingate/github-action@main
+        uses: twingate/github-action@published-action-tests
         with:
           service-key: ${{ secrets[matrix.service-key] }}
 

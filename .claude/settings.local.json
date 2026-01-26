@@ -6,7 +6,9 @@
       "Bash(git grep:*)",
       "Bash(gh api:*)",
       "Bash(gh release list:*)",
-      "Bash(gh pr view:*)"
+      "Bash(gh pr view:*)",
+      "Bash(git pull:*)",
+      "Bash(git push:*)"
     ]
   }
 }
