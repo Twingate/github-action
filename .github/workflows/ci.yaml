@@ -28,7 +28,7 @@ jobs:
       steps:
         - uses: actions/checkout@v6
 
-        - uses: .
+        - uses: ./
           with:
             service-key: ${{ secrets[matrix.service-key] }}
 
