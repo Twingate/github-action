@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - 'main'
-      - 'published-action-tests'
   workflow_dispatch:
 
 jobs:
