@@ -1,39 +1,13 @@
 name: Release Verification
 
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - 'main'
   workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Release tag to test (leave empty for latest release)'
-        required: false
-        type: string
 
 jobs:
-  resolve-tag:
-    runs-on: ubuntu-latest
-    outputs:
-      tag: ${{ steps.get-tag.outputs.tag }}
-    steps:
-      - name: Get tag to test
-        id: get-tag
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if [ -n "${{ inputs.tag }}" ]; then
-            echo "tag=${{ inputs.tag }}" >> $GITHUB_OUTPUT
-          elif [ -n "${{ github.event.release.tag_name }}" ]; then
-            echo "tag=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
-          else
-            TAG=$(gh release view --repo ${{ github.repository }} --json tagName -q '.tagName')
-            echo "tag=$TAG" >> $GITHUB_OUTPUT
-          fi
-      - name: Print tag
-        run: echo "Testing tag ${{ steps.get-tag.outputs.tag }}"
-
   test-linux:
-    needs: resolve-tag
     strategy:
       max-parallel: 4
       matrix:
@@ -53,7 +27,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Test published action
-        uses: twingate/github-action@latest
+        uses: twingate/github-action
         with:
           service-key: ${{ secrets[matrix.service-key] }}
 
@@ -72,7 +46,6 @@ jobs:
         run: journalctl -u twingate
 
   test-windows:
-    needs: resolve-tag
     strategy:
       max-parallel: 4
       matrix:
@@ -88,7 +61,7 @@ jobs:
     timeout-minutes: 6
     steps:
       - name: Test published action
-        uses: twingate/github-action@latest
+        uses: twingate/github-action
         with:
           service-key: ${{ secrets[matrix.service-key] }}
 

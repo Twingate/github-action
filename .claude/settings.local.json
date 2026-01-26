@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git ls-tree:*)",
+      "Bash(git for-each-ref:*)",
+      "Bash(git grep:*)",
+      "Bash(gh api:*)",
+      "Bash(gh release list:*)",
+      "Bash(gh pr view:*)"
+    ]
+  }
+}
