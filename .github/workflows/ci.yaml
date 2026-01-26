@@ -92,14 +92,7 @@ jobs:
       steps:
         - uses: actions/checkout@v6
 
-        - name: Move local action to folder where it can be tested
-          shell: powershell
-          run: |
-            New-Item -Path ".github/actions/test" -ItemType Directory -Force
-            Copy-Item -Path "action.yml" -Destination ".github/actions/test/action.yml" -Force
-            Copy-Item -Path "scripts" -Destination ".github/actions/test/scripts" -Recurse -Force
-
-        - uses: ./.github/actions/test
+        - uses: ./
           with:
             service-key: ${{ secrets[matrix.service-key] }}
 
