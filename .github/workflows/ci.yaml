@@ -28,14 +28,7 @@ jobs:
       steps:
         - uses: actions/checkout@v6
 
-        - name: Move local action to folder where it can be tested
-          shell: bash
-          run: |
-            mkdir -p .github/actions/test
-            cp action.yml .github/actions/test/action.yml
-            cp -r scripts .github/actions/test/scripts
-
-        - uses: ./.github/actions/test
+        - uses: .
           with:
             service-key: ${{ secrets[matrix.service-key] }}
 
