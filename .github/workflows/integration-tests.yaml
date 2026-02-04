@@ -32,7 +32,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Test published action
-        uses: twingate/github-action@main
+        uses: twingate/github-action@fix/debug-issue-66
         with:
           service-key: ${{ secrets[matrix.service-key] }}
           debug: ${{ inputs.debug }}
