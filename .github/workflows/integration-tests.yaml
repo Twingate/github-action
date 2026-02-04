@@ -35,7 +35,7 @@ jobs:
         uses: twingate/github-action@main
         with:
           service-key: ${{ secrets[matrix.service-key] }}
-          debug: ${{ inputs.debug }}
+          debug: ${{ inputs.debug || 'false' }}
 
       - name: Verify Twingate status
         run: twingate status
@@ -70,6 +70,7 @@ jobs:
         uses: twingate/github-action@main
         with:
           service-key: ${{ secrets[matrix.service-key] }}
+          debug: ${{ inputs.debug || 'false' }}
 
       - name: Access a secure resource
         shell: powershell
