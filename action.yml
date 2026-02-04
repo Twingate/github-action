@@ -35,7 +35,6 @@ runs:
       id: twingate-version-linux
       shell: bash
       run: |
-        set -x
         export DEBUG_MODE='${{ inputs.debug }}'
         source ${{ github.action_path }}/scripts/linux-helpers.sh
 
