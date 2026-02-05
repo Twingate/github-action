@@ -5,6 +5,11 @@ on:
     branches:
       - 'main'
   workflow_dispatch:
+    inputs:
+      debug:
+        description: 'Enable debug mode'
+        required: false
+        default: 'false'
 
 jobs:
   test-linux:
@@ -30,6 +35,7 @@ jobs:
         uses: twingate/github-action@main
         with:
           service-key: ${{ secrets[matrix.service-key] }}
+          debug: ${{ inputs.debug || 'false' }}
 
       - name: Verify Twingate status
         run: twingate status
@@ -64,6 +70,7 @@ jobs:
         uses: twingate/github-action@main
         with:
           service-key: ${{ secrets[matrix.service-key] }}
+          debug: ${{ inputs.debug || 'false' }}
 
       - name: Access a secure resource
         shell: powershell

@@ -8,7 +8,7 @@ log() {
   if [ "$level" = "DEBUG" ] && [ "$DEBUG_MODE" != "true" ]; then
     return
   fi
-  echo "[$level] $@"
+  echo "[$level] $@" >&2
 }
 
 get_twingate_version() {
