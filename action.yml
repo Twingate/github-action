@@ -148,7 +148,7 @@ runs:
       shell: bash
       run: |
         # Import Twingate GPG key for signature verification
-        curl -fsSL https://packages.twingate.com/apt/gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/twingate-client-keyring.gpg
+        curl -fsSL https://packages.twingate.com/apt/gpg.key | sudo gpg --batch --yes --no-tty --dearmor -o /usr/share/keyrings/twingate-client-keyring.gpg
 
         # Add Twingate repository with GPG key verification
         echo "deb [signed-by=/usr/share/keyrings/twingate-client-keyring.gpg] https://packages.twingate.com/apt/ * *" | sudo tee /etc/apt/sources.list.d/twingate.list
