@@ -106,7 +106,7 @@ normalize_version() {
 
 check_tag_exists() {
     local tag=$1
-    if git rev-parse "$tag" >/dev/null 2>&1; then
+    if git rev-parse "refs/tags/$tag" >/dev/null 2>&1; then
         return 0
     else
         return 1
