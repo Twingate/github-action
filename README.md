@@ -109,11 +109,40 @@ It'll ask for `SERVICE_KEY` value interactively.
 
 # How To Release
 
-When releasing a new tag (`v1.4` for example) we also have to update the latest major version (`v1` in this case)
-to point to it.
-Example steps:
+This repository uses a dual-tagging strategy where each release has both a specific version tag (e.g., `v1.6`) and an updated major version tag (e.g., `v1`) that always points to the latest release.
 
+## Automated Release (Recommended)
+
+Use the `release.sh` script to automate the entire release process:
+
+```bash
+# Auto-increment from the latest tag (e.g., v1.6 -> v1.7)
+./release.sh
+
+# Release a specific version
+./release.sh v1.8
+./release.sh 1.8  # v prefix is optional
+
+# Preview what would happen without making changes
+./release.sh --dry-run
+
+# Get help
+./release.sh --help
 ```
+
+The script will:
+1. Validate prerequisites (clean git status, gh CLI installed and authenticated)
+2. Determine the version (from argument or auto-increment)
+3. Create both the specific version tag and update the major version tag
+4. Push tags to origin
+5. Create a GitHub release with auto-generated notes
+
+## Manual Release (Fallback)
+
+If you need to release manually, follow these steps:
+
+```bash
+# Example for releasing v1.4
 git tag v1.4
 git tag v1 -f
 git push origin v1 v1.4 -f
