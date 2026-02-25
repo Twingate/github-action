@@ -26,7 +26,7 @@ runs:
       if: runner.os != 'Linux' && runner.os != 'Windows'
       shell: bash
       run: |
-        source ${{ github.action_path }}/scripts/linux-helpers.sh
+        source "$GITHUB_ACTION_PATH/scripts/linux-helpers.sh"
         log ERROR "Unsupported Runner OS: ${{ runner.os }}"
         exit 1
 
@@ -36,7 +36,7 @@ runs:
       shell: bash
       run: |
         export DEBUG_MODE='${{ inputs.debug }}'
-        source ${{ github.action_path }}/scripts/linux-helpers.sh
+        source "$GITHUB_ACTION_PATH/scripts/linux-helpers.sh"
 
         VERSION=$(get_twingate_version)
         echo "version=$VERSION" >> $GITHUB_OUTPUT
@@ -50,7 +50,7 @@ runs:
       shell: powershell
       run: |
         $env:DEBUG_MODE = '${{ inputs.debug }}'
-        . ${{ github.action_path }}/scripts/windows-helpers.ps1
+        . "$env:GITHUB_ACTION_PATH/scripts/windows-helpers.ps1"
 
         $version = Get-TwingateVersion
         Add-Content -Path $env:GITHUB_OUTPUT -Value "version=$version"
@@ -95,7 +95,7 @@ runs:
       shell: bash
       run: |
         export DEBUG_MODE='${{ inputs.debug }}'
-        source ${{ github.action_path }}/scripts/linux-helpers.sh
+        source "$GITHUB_ACTION_PATH/scripts/linux-helpers.sh"
 
         VALID=$(validate_cache_linux)
         echo "valid=$VALID" >> $GITHUB_OUTPUT
@@ -106,7 +106,7 @@ runs:
       shell: powershell
       run: |
         $env:DEBUG_MODE = '${{ inputs.debug }}'
-        . ${{ github.action_path }}/scripts/windows-helpers.ps1
+        . "$env:GITHUB_ACTION_PATH/scripts/windows-helpers.ps1"
 
         $cacheDir = "${{ runner.temp }}\twingate-cache"
         $isValid = Validate-CacheWindows -CacheDir $cacheDir
@@ -117,7 +117,7 @@ runs:
       shell: bash
       run: |
         export DEBUG_MODE='${{ inputs.debug }}'
-        source ${{ github.action_path }}/scripts/linux-helpers.sh
+        source "$GITHUB_ACTION_PATH/scripts/linux-helpers.sh"
 
         log DEBUG "Installing Twingate from cache"
         # Install all packages from cache directory (twingate + dependencies)
@@ -129,7 +129,7 @@ runs:
       shell: powershell
       run: |
         $env:DEBUG_MODE = '${{ inputs.debug }}'
-        . ${{ github.action_path }}/scripts/windows-helpers.ps1
+        . "$env:GITHUB_ACTION_PATH/scripts/windows-helpers.ps1"
 
         log DEBUG "Copying cached MSI to working directory"
         $cacheDir = "${{ runner.temp }}\twingate-cache"
@@ -174,7 +174,7 @@ runs:
       shell: powershell
       run: |
         $env:DEBUG_MODE = '${{ inputs.debug }}'
-        . ${{ github.action_path }}/scripts/windows-helpers.ps1
+        . "$env:GITHUB_ACTION_PATH/scripts/windows-helpers.ps1"
 
         # Download MSI
         $msiUrl = "https://api.twingate.com/download/windows?installer=msi"
@@ -200,7 +200,7 @@ runs:
       shell: bash
       run: |
         export DEBUG_MODE='${{ inputs.debug }}'
-        source ${{ github.action_path }}/scripts/linux-helpers.sh
+        source "$GITHUB_ACTION_PATH/scripts/linux-helpers.sh"
 
         echo '${{ inputs.service-key }}' | sudo twingate setup --headless -
         MAX_RETRIES=5
@@ -248,7 +248,7 @@ runs:
       shell: powershell
       run: |
         $env:DEBUG_MODE = '${{ inputs.debug }}'
-        . ${{ github.action_path }}/scripts/windows-helpers.ps1
+        . "$env:GITHUB_ACTION_PATH/scripts/windows-helpers.ps1"
 
         # Install Twingate client and start service
         Set-Content .\key.json  '${{ inputs.service-key }}'
