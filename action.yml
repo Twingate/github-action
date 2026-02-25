@@ -40,11 +40,8 @@ runs:
         command -v gpg >/dev/null 2>&1 || MISSING_DEPS="$MISSING_DEPS gnupg"
 
         if [ -n "$MISSING_DEPS" ]; then
-          # Use sudo if not running as root and sudo is available
-          SUDO=""
-          if [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1; then
-            SUDO="sudo"
-          fi
+          # Detect if we need sudo for package installation
+          source "$GITHUB_ACTION_PATH/scripts/sudo-detect.sh"
 
           echo "Installing missing dependencies: $MISSING_DEPS"
           $SUDO apt-get update
