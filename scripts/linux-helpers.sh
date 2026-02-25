@@ -2,6 +2,9 @@
 # Linux helper functions for logging, version detection, and cache validation
 # Usage: source ./scripts/linux-helpers.sh
 
+# Source SUDO detection
+source "$(dirname "${BASH_SOURCE[0]}")/sudo-detect.sh"
+
 log() {
   local level=$1
   shift

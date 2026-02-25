@@ -51,6 +51,39 @@ jobs:
         if: always()
         run: journalctl -u twingate
 
+  test-linux-docker:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:24.04
+      options: --privileged
+    timeout-minutes: 10
+    steps:
+      - name: Test published action
+        uses: twingate/github-action@main
+        with:
+          service-key: ${{ secrets.SERVICE_KEY }}
+          debug: ${{ inputs.debug || 'false' }}
+
+      - name: Verify Twingate status
+        run: twingate status
+
+      - name: Access a secure resource
+        env:
+          TEST_URL: http://business.prod.beamreachinc.int/
+        run: |
+          curl -v $TEST_URL
+
+      - name: Print client logs
+        if: always()
+        run: |
+          if command -v journalctl >/dev/null 2>&1; then
+            journalctl -u twingate
+          elif [ -f /var/log/twingated.log ]; then
+            cat /var/log/twingated.log
+          else
+            echo "No Twingate logs found"
+          fi
+
   test-windows:
     strategy:
       max-parallel: 4

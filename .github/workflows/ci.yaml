@@ -75,6 +75,39 @@ jobs:
 
         - run: echo "SUCCESS!!! 🤩 This job's status is ${{ job.status }}."
 
+    test-linux-docker:
+      runs-on: ubuntu-latest
+      container:
+        image: ubuntu:24.04
+        options: --privileged
+      timeout-minutes: 10
+      steps:
+        - uses: actions/checkout@v6
+
+        - uses: ./
+          with:
+            service-key: ${{ secrets.SERVICE_KEY }}
+
+        - name: Verify Twingate status
+          run: twingate status
+
+        - name: Access a secure resource
+          env:
+            TEST_URL: http://business.prod.beamreachinc.int/
+          run: |
+            curl -v $TEST_URL
+
+        - name: Print client logs
+          if: always()
+          run: |
+            if command -v journalctl >/dev/null 2>&1; then
+              journalctl -u twingate
+            elif [ -f /var/log/twingated.log ]; then
+              cat /var/log/twingated.log
+            else
+              echo "No Twingate logs found"
+            fi
+
     test-windows:
       strategy:
         max-parallel: 4
