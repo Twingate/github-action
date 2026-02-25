@@ -40,9 +40,15 @@ runs:
         command -v gpg >/dev/null 2>&1 || MISSING_DEPS="$MISSING_DEPS gnupg"
 
         if [ -n "$MISSING_DEPS" ]; then
-          echo "Installing missing dependencies:$MISSING_DEPS"
-          apt-get update
-          apt-get install -y $MISSING_DEPS
+          # Use sudo if not running as root and sudo is available
+          SUDO=""
+          if [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1; then
+            SUDO="sudo"
+          fi
+
+          echo "Installing missing dependencies: $MISSING_DEPS"
+          $SUDO apt-get update
+          $SUDO apt-get install -y $MISSING_DEPS
         fi
 
     - name: Get latest Twingate version (Linux)

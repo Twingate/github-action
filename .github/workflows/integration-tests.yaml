@@ -73,6 +73,10 @@ jobs:
         run: |
           curl -v $TEST_URL
 
+      - name: Print client logs
+        if: always()
+        run: journalctl -u twingate
+
   test-windows:
     strategy:
       max-parallel: 4
