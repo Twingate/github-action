@@ -9,7 +9,7 @@ else
   if command -v sudo >/dev/null 2>&1; then
     SUDO="sudo"
   else
-    echo "[ERROR] sudo is not available. Please install sudo or run this script as root." >&2
+    echo "[ERROR] sudo is not available. Please run this script as root." >&2
     exit 1
   fi
 fi
