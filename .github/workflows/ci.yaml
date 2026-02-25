@@ -99,7 +99,14 @@ jobs:
 
         - name: Print client logs
           if: always()
-          run: journalctl -u twingate
+          run: |
+            if command -v journalctl >/dev/null 2>&1; then
+              journalctl -u twingate
+            elif [ -f /var/log/twingated.log ]; then
+              cat /var/log/twingated.log
+            else
+              echo "No Twingate logs found"
+            fi
 
     test-windows:
       strategy:
