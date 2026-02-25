@@ -51,6 +51,28 @@ jobs:
         if: always()
         run: journalctl -u twingate
 
+  test-linux-docker:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:24.04
+      options: --privileged
+    timeout-minutes: 10
+    steps:
+      - name: Test published action
+        uses: twingate/github-action@main
+        with:
+          service-key: ${{ secrets.SERVICE_KEY }}
+          debug: ${{ inputs.debug || 'false' }}
+
+      - name: Verify Twingate status
+        run: twingate status
+
+      - name: Access a secure resource
+        env:
+          TEST_URL: http://business.prod.beamreachinc.int/
+        run: |
+          curl -v $TEST_URL
+
   test-windows:
     strategy:
       max-parallel: 4
