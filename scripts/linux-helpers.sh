@@ -2,11 +2,16 @@
 # Linux helper functions for logging, version detection, and cache validation
 # Usage: source ./scripts/linux-helpers.sh
 
-# Set SUDO to empty if running as root, otherwise "sudo"
+# Set SUDO to empty if running as root. For non-root, require that "sudo" exists.
 if [ "$(id -u)" -eq 0 ]; then
   SUDO=""
 else
-  SUDO="sudo"
+  if command -v sudo >/dev/null 2>&1; then
+    SUDO="sudo"
+  else
+    echo "[ERROR] sudo is not available. Please install sudo or run this script as root." >&2
+    exit 1
+  fi
 fi
 
 log() {
