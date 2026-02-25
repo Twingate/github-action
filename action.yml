@@ -30,6 +30,21 @@ runs:
         log ERROR "Unsupported Runner OS: ${{ runner.os }}"
         exit 1
 
+    - name: Install prerequisites (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        # Check if we're in a minimal container environment missing required tools
+        MISSING_DEPS=""
+        command -v curl >/dev/null 2>&1 || MISSING_DEPS="$MISSING_DEPS curl"
+        command -v gpg >/dev/null 2>&1 || MISSING_DEPS="$MISSING_DEPS gnupg"
+
+        if [ -n "$MISSING_DEPS" ]; then
+          echo "Installing missing dependencies:$MISSING_DEPS"
+          apt-get update
+          apt-get install -y $MISSING_DEPS
+        fi
+
     - name: Get latest Twingate version (Linux)
       if: runner.os == 'Linux' && inputs.cache == 'true'
       id: twingate-version-linux
@@ -121,8 +136,8 @@ runs:
 
         log DEBUG "Installing Twingate from cache"
         # Install all packages from cache directory (twingate + dependencies)
-        sudo dpkg -i ~/.twingate-cache/*.deb || true
-        sudo apt-get install -f -yq
+        $SUDO dpkg -i ~/.twingate-cache/*.deb || true
+        $SUDO apt-get install -f -yq
 
     - name: Copy cached MSI to working directory (Windows)
       if: runner.os == 'Windows' && inputs.cache == 'true' && steps.validate-cache-windows.outputs.valid == 'true'
@@ -147,27 +162,29 @@ runs:
       if: runner.os == 'Linux' && (inputs.cache != 'true' || steps.cache-twingate-linux.outputs.cache-hit != 'true' || steps.validate-cache-linux.outputs.valid != 'true' || steps.twingate-version-linux.outputs.version == 'unknown')
       shell: bash
       run: |
+        source "$GITHUB_ACTION_PATH/scripts/linux-helpers.sh"
+
         # Import Twingate GPG key for signature verification
-        curl -fsSL https://packages.twingate.com/apt/gpg.key | sudo gpg --batch --yes --no-tty --dearmor -o /usr/share/keyrings/twingate-client-keyring.gpg
+        curl -fsSL https://packages.twingate.com/apt/gpg.key | $SUDO gpg --batch --yes --no-tty --dearmor -o /usr/share/keyrings/twingate-client-keyring.gpg
 
         # Add Twingate repository with GPG key verification
-        echo "deb [signed-by=/usr/share/keyrings/twingate-client-keyring.gpg] https://packages.twingate.com/apt/ * *" | sudo tee /etc/apt/sources.list.d/twingate.list
+        echo "deb [signed-by=/usr/share/keyrings/twingate-client-keyring.gpg] https://packages.twingate.com/apt/ * *" | $SUDO tee /etc/apt/sources.list.d/twingate.list
 
-        sudo apt update
-        sudo apt-get update -o Dir::Etc::sourcelist="sources.list.d/twingate.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
+        $SUDO apt update
+        $SUDO apt-get update -o Dir::Etc::sourcelist="sources.list.d/twingate.list" -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
 
         # Download all packages to cache if caching is enabled
         if [ "${{ steps.twingate-version-linux.outputs.version }}" != "unknown" ]; then
           mkdir -p ~/.twingate-cache
           # Download Twingate and all dependencies to cache directory
-          sudo apt-get install -yq --download-only -o Dir::Cache::Archives="$HOME/.twingate-cache" twingate
+          $SUDO apt-get install -yq --download-only -o Dir::Cache::Archives="$HOME/.twingate-cache" twingate
           # Install to resolve any missing dependencies, then download them
-          sudo apt-get install -yq --download-only -o Dir::Cache::Archives="$HOME/.twingate-cache" -f
+          $SUDO apt-get install -yq --download-only -o Dir::Cache::Archives="$HOME/.twingate-cache" -f
           # Fix permissions so cache action can save files
-          sudo chown -R "$(id -u)":"$(id -g)" "$HOME/.twingate-cache"
+          $SUDO chown -R "$(id -u)":"$(id -g)" "$HOME/.twingate-cache"
         fi
 
-        sudo apt install -yq twingate
+        $SUDO apt install -yq twingate
 
     - name: Download and cache Twingate MSI (Windows)
       if: runner.os == 'Windows' && (inputs.cache != 'true' || steps.cache-twingate-windows.outputs.cache-hit != 'true' || steps.validate-cache-windows.outputs.valid != 'true' || steps.twingate-version-windows.outputs.version == 'unknown')
@@ -202,7 +219,7 @@ runs:
         export DEBUG_MODE='${{ inputs.debug }}'
         source "$GITHUB_ACTION_PATH/scripts/linux-helpers.sh"
 
-        echo '${{ inputs.service-key }}' | sudo twingate setup --headless -
+        echo '${{ inputs.service-key }}' | $SUDO twingate setup --headless -
         MAX_RETRIES=5
         WAIT_TIME=5
         n=0

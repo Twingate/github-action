@@ -2,6 +2,13 @@
 # Linux helper functions for logging, version detection, and cache validation
 # Usage: source ./scripts/linux-helpers.sh
 
+# Set SUDO to empty if running as root, otherwise "sudo"
+if [ "$(id -u)" -eq 0 ]; then
+  SUDO=""
+else
+  SUDO="sudo"
+fi
+
 log() {
   local level=$1
   shift
