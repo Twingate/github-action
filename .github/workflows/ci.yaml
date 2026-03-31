@@ -56,7 +56,7 @@ jobs:
             curl -v $TEST_URL
 
         - name: Access a secure resource from a docker
-          uses: docker://alpine:latest
+          uses: docker://alpine@sha256:25109184c71bdad752c8312a8623239686a9a2071e8825f20acb8f2198c3f659
           id: test_docker_curl
           with:
             entrypoint: /bin/sh
