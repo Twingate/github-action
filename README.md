@@ -1,4 +1,7 @@
 # Twingate Connect Action
+
+[![CI](https://github.com/Twingate/github-action/actions/workflows/ci.yaml/badge.svg)](https://github.com/Twingate/github-action/actions/workflows/ci.yaml)
+
 A GitHub action for connecting to Twingate
 
 # Purpose
