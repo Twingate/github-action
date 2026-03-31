@@ -57,13 +57,13 @@ jobs:
 
         - name: Access a secure resource from a docker
           run: |
-            docker run --rm --network host alpine:3.19 /bin/sh -c "
-              sed '/^nameserver 168.63.129.16$/d; /^search/d' /etc/resolv.conf > /tmp/resolv.conf &&
+            docker run --rm --network host alpine:3.19 /bin/sh -c '
+              sed "/^nameserver 168.63.129.16$/d; /^search/d" /etc/resolv.conf > /tmp/resolv.conf &&
               cat /tmp/resolv.conf > /etc/resolv.conf &&
               cat /etc/resolv.conf &&
               apk add --no-cache curl &&
               curl -v http://business.prod.beamreachinc.int/
-            "
+            '
 
         - name: Print client logs
           if: always()
