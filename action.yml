@@ -83,7 +83,7 @@ runs:
 
     - name: Cache Twingate package and dependencies (Linux)
       if: runner.os == 'Linux' && inputs.cache == 'true' && steps.twingate-version-linux.outputs.version != 'unknown'
-      uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       id: cache-twingate-linux
       with:
         path: ~/.twingate-cache
@@ -101,7 +101,7 @@ runs:
 
     - name: Cache Twingate MSI (Windows)
       if: runner.os == 'Windows' && inputs.cache == 'true' && steps.twingate-version-windows.outputs.version != 'unknown'
-      uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       id: cache-twingate-windows
       with:
         path: ${{ runner.temp }}\twingate-cache
