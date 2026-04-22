@@ -11,7 +11,7 @@ jobs:
       strategy:
         max-parallel: 4
         matrix:
-          runs-on: [ubuntu-latest, ubuntu-24.04, ubuntu-22.04, ubuntu-24.04-arm, ubuntu-22.04-arm]
+          runs-on: [ubuntu-latest, ubuntu-24.04, ubuntu-22.04, ubuntu-24.04-arm, ubuntu-22.04-arm, ubuntu-slim]
           include:
             - runs-on: ubuntu-latest
               service-key: SERVICE_KEY
@@ -23,6 +23,8 @@ jobs:
               service-key: SERVICE_KEY_ARM1
             - runs-on: ubuntu-22.04-arm
               service-key: SERVICE_KEY_ARM2
+            - runs-on: ubuntu-slim
+              service-key: SERVICE_KEY
       runs-on: ${{ matrix.runs-on }}
       timeout-minutes: 5
       steps:
