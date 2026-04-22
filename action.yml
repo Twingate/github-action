@@ -182,7 +182,7 @@ runs:
           # Download Twingate and all its dependencies to cache directory
           # Use --reinstall to force downloading deps already installed on this runner,
           # so the cache is self-contained for minimal environments (e.g. ubuntu-slim)
-          TWINGATE_DEPS=$(apt-cache depends --no-recommends --no-suggests --no-conflicts --no-breaks --no-replaces --no-enhances twingate | grep "Depends:" | awk '{print $2}' | tr '\n' ' ')
+          TWINGATE_DEPS=$(apt-cache depends --no-recommends --no-suggests --no-conflicts --no-breaks --no-replaces --no-enhances twingate | grep "Depends:" | awk '{print $2}' | grep -v '[<>]' | tr '\n' ' ')
           $SUDO apt-get install -yq --download-only --reinstall -o Dir::Cache::Archives="$HOME/.twingate-cache" twingate $TWINGATE_DEPS
           # Fix permissions so cache action can save files
           $SUDO chown -R "$(id -u)":"$(id -g)" "$HOME/.twingate-cache"
