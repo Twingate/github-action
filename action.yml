@@ -14,7 +14,7 @@ inputs:
   cache-version:
     description: 'Cache version suffix for invalidating cached packages'
     required: false
-    default: "3"
+    default: "4"
   cache:
     description: 'Enable caching of Twingate packages'
     required: false
