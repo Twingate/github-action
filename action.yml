@@ -179,10 +179,11 @@ runs:
         # Download all packages to cache if caching is enabled
         if [ "${{ steps.twingate-version-linux.outputs.version }}" != "unknown" ]; then
           mkdir -p ~/.twingate-cache
-          # Download Twingate and all dependencies to cache directory
-          $SUDO apt-get install -yq --download-only -o Dir::Cache::Archives="$HOME/.twingate-cache" twingate
-          # Install to resolve any missing dependencies, then download them
-          $SUDO apt-get install -yq --download-only -o Dir::Cache::Archives="$HOME/.twingate-cache" -f
+          # Download Twingate and all its dependencies to cache directory
+          # Use --reinstall to force downloading deps already installed on this runner,
+          # so the cache is self-contained for minimal environments (e.g. ubuntu-slim)
+          TWINGATE_DEPS=$(apt-cache depends --no-recommends --no-suggests --no-conflicts --no-breaks --no-replaces --no-enhances twingate | grep "Depends:" | awk '{print $2}' | tr '\n' ' ')
+          $SUDO apt-get install -yq --download-only --reinstall -o Dir::Cache::Archives="$HOME/.twingate-cache" twingate $TWINGATE_DEPS
           # Fix permissions so cache action can save files
           $SUDO chown -R "$(id -u)":"$(id -g)" "$HOME/.twingate-cache"
         fi
