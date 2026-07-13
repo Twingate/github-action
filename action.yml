@@ -223,6 +223,11 @@ runs:
         source "$GITHUB_ACTION_PATH/scripts/linux-helpers.sh"
 
         echo '${{ inputs.service-key }}' | $SUDO twingate setup --headless -
+
+        # Fail fast on runners that fundamentally can't run a VPN client
+        # (e.g. ubuntu-slim), instead of retrying silently until timeout.
+        check_network_capabilities || exit 1
+
         MAX_RETRIES=5
         WAIT_TIME=5
         n=0
@@ -247,7 +252,14 @@ runs:
           else
             twingate stop
             if [ "${{ inputs.debug }}" = "true" ]; then
-              journalctl -u twingate --no-pager
+              # journalctl is empty without systemd (container runners); the
+              # forked daemon logs to /var/log/twingated.log instead.
+              if [ -d /run/systemd/system ]; then
+                journalctl -u twingate --no-pager
+              else
+                log INFO "systemd not present; dumping /var/log/twingated.log"
+                $SUDO cat /var/log/twingated.log 2>/dev/null || log INFO "no daemon log found"
+              fi
             fi
           fi
 
