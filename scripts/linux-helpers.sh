@@ -34,8 +34,9 @@ get_os_version() {
 # Verify the runner can actually run a VPN client before we try to start it.
 # Twingate needs the TUN device node AND CAP_NET_ADMIN (for ioctl(TUNSETIFF) and
 # route setup). Unprivileged container runners (ubuntu-slim, some container jobs)
-# have neither, so the daemon starts but never comes online. Fail fast with
-# guidance instead of retrying silently for ~75s. Returns non-zero if unusable.
+# lack at least one of these — often the TUN node exists but CAP_NET_ADMIN is
+# dropped — so the daemon starts but never comes online. Fail fast with guidance
+# instead of retrying silently for ~75s. Returns non-zero if unusable.
 check_network_capabilities() {
   local missing=""
 
@@ -45,7 +46,9 @@ check_network_capabilities() {
   # absent there, not even root (via sudo) can acquire it. If CapBnd is
   # unreadable we skip this check rather than risk a false failure.
   local cap_bnd
-  cap_bnd=$(awk '/^CapBnd:/ {print $2}' /proc/self/status 2>/dev/null)
+  # `|| true` so an unreadable /proc/self/status yields "" instead of tripping
+  # `set -e` in the calling step (this runs before the loop's `set +xe`).
+  cap_bnd=$(awk '/^CapBnd:/ {print $2}' /proc/self/status 2>/dev/null || true)
   if [ -n "$cap_bnd" ] && [ $(( (0x$cap_bnd >> 12) & 1 )) -ne 1 ]; then
     missing="$missing CAP_NET_ADMIN"
   fi
