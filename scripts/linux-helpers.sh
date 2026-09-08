@@ -45,10 +45,13 @@ install_twingate_gpg_key() {
     return 1
   fi
 
-  $SUDO gpg --batch --yes --no-tty --dearmor -o "$keyring" < "$tmp"
-  local rc=$?
+  if ! $SUDO gpg --batch --yes --no-tty --dearmor -o "$keyring" < "$tmp"; then
+    log ERROR "Failed to install Twingate GPG key (gpg --dearmor failed)."
+    rm -f "$tmp"
+    return 1
+  fi
   rm -f "$tmp"
-  return $rc
+  return 0
 }
 
 # Verify the runner can actually run a VPN client before we try to start it.
