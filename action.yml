@@ -167,8 +167,7 @@ runs:
       run: |
         source "$GITHUB_ACTION_PATH/scripts/linux-helpers.sh"
 
-        # Import Twingate GPG key for signature verification
-        curl -fsSL https://packages.twingate.com/apt/gpg.key | $SUDO gpg --batch --yes --no-tty --dearmor -o /usr/share/keyrings/twingate-client-keyring.gpg
+        install_twingate_gpg_key
 
         # Add Twingate repository with GPG key verification
         echo "deb [signed-by=/usr/share/keyrings/twingate-client-keyring.gpg] https://packages.twingate.com/apt/ * *" | $SUDO tee /etc/apt/sources.list.d/twingate.list
