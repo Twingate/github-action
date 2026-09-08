@@ -31,6 +31,29 @@ get_os_version() {
   grep VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"'
 }
 
+# Fetch/install the Twingate APT signing key, retrying transient 401s (issue #86).
+# Write to a temp file so a failure surfaces curl's status, not gpg's empty-body error.
+install_twingate_gpg_key() {
+  local keyring=/usr/share/keyrings/twingate-client-keyring.gpg
+  local tmp
+  tmp=$(mktemp)
+
+  if ! curl -fsSL --retry 5 --retry-all-errors --retry-delay 2 \
+       https://packages.twingate.com/apt/gpg.key -o "$tmp"; then
+    log ERROR "Failed to download Twingate GPG key from https://packages.twingate.com/apt/gpg.key after retries (see curl error above)."
+    rm -f "$tmp"
+    return 1
+  fi
+
+  if ! $SUDO gpg --batch --yes --no-tty --dearmor -o "$keyring" < "$tmp"; then
+    log ERROR "Failed to install Twingate GPG key (gpg --dearmor failed)."
+    rm -f "$tmp"
+    return 1
+  fi
+  rm -f "$tmp"
+  return 0
+}
+
 # Verify the runner can actually run a VPN client before we try to start it.
 # Twingate needs the TUN device node AND CAP_NET_ADMIN (for ioctl(TUNSETIFF) and
 # route setup). Unprivileged container runners (ubuntu-slim, some container jobs)
