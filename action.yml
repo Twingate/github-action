@@ -127,7 +127,7 @@ runs:
         . "$env:GITHUB_ACTION_PATH/scripts/windows-helpers.ps1"
 
         $cacheDir = "${{ runner.temp }}\twingate-cache"
-        $isValid = Validate-CacheWindows -CacheDir $cacheDir
+        $isValid = Validate-CacheWindows -CacheDir $cacheDir -ExpectedVersion '${{ steps.twingate-version-windows.outputs.version }}'
         Add-Content -Path $env:GITHUB_OUTPUT -Value "valid=$isValid"
 
     - name: Install Twingate from cache (Linux)

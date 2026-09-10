@@ -52,7 +52,7 @@ function Get-OSVersion {
 }
 
 function Validate-CacheWindows {
-  param([string]$CacheDir)
+  param([string]$CacheDir, [string]$ExpectedVersion)
 
   $msiFiles = Get-ChildItem -Path $CacheDir -Filter "twingate*.msi" -ErrorAction SilentlyContinue
 
@@ -61,22 +61,60 @@ function Validate-CacheWindows {
     return $false
   }
 
-  try {
-    $msiFile = $msiFiles[0].FullName
+  $msiFile = $msiFiles[0].FullName
+  $installer = $null
+  $database = $null
+  $view = $null
+  $record = $null
 
-    # Try to get MSI properties - this validates the MSI file
-    $msiInfo = Get-ItemProperty -Path $msiFile
-    if (-not $msiInfo) {
-      log DEBUG "Cached MSI is corrupted"
-      Remove-Item -Path $CacheDir -Recurse -Force -ErrorAction SilentlyContinue
+  try {
+    # OpenDatabase parses the MSI, so a truncated or corrupt file throws here rather
+    # than surviving to msiexec. Mode 0 is read-only.
+    $installer = New-Object -ComObject WindowsInstaller.Installer
+    $database = $installer.GetType().InvokeMember('OpenDatabase', 'InvokeMethod', $null, $installer, @($msiFile, 0))
+
+    # ProductVersion is not usable for this check: MSI caps the major field at 255, so
+    # a client version like 2026.239.5147 is stored as 20.26.239.5147. ProductName
+    # ("Twingate <version>") carries the upstream version verbatim.
+    $view = $database.GetType().InvokeMember('OpenView', 'InvokeMethod', $null, $database,
+      @("SELECT Value FROM Property WHERE Property = 'ProductName'"))
+    $view.GetType().InvokeMember('Execute', 'InvokeMethod', $null, $view, $null) | Out-Null
+    $record = $view.GetType().InvokeMember('Fetch', 'InvokeMethod', $null, $view, $null)
+
+    if ($null -eq $record) {
+      log DEBUG "Cached MSI has no ProductName property"
+      Clear-CacheWindows -CacheDir $CacheDir
       return $false
-    } else {
-      log DEBUG "Cache is valid"
-      return $true
     }
+
+    $productName = $record.GetType().InvokeMember('StringData', 'GetProperty', $null, $record, @(1))
+    log DEBUG "Cached MSI ProductName: $productName"
+
+    if ($ExpectedVersion -and $ExpectedVersion -ne 'unknown' -and
+        $productName -notmatch ('\b' + [regex]::Escape($ExpectedVersion) + '\b')) {
+      log DEBUG "Cached MSI is version-mismatched (wanted $ExpectedVersion)"
+      Clear-CacheWindows -CacheDir $CacheDir
+      return $false
+    }
+
+    log DEBUG "Cache is valid"
+    return $true
   } catch {
     log DEBUG "Cached MSI is corrupted: $_"
-    Remove-Item -Path $CacheDir -Recurse -Force -ErrorAction SilentlyContinue
+    Clear-CacheWindows -CacheDir $CacheDir
     return $false
+  } finally {
+    # Release the COM handles so nothing holds the MSI open for the copy that follows.
+    foreach ($obj in @($record, $view, $database, $installer)) {
+      if ($obj) { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($obj) }
+    }
   }
+}
+
+function Clear-CacheWindows {
+  param([string]$CacheDir)
+
+  # Clear the contents but keep the directory, matching validate_cache_linux and
+  # leaving the path in place for the download step and the cache save.
+  Remove-Item -Path (Join-Path $CacheDir '*') -Recurse -Force -ErrorAction SilentlyContinue
 }
