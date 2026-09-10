@@ -31,11 +31,11 @@ function Get-TwingateVersion {
       log DEBUG "Latest Twingate version: $version"
       return $version
     } else {
-      log DEBUG "Could not extract version from URL"
+      log WARNING "Could not extract version from download URL, proceeding without cache"
       return "unknown"
     }
   } catch {
-    log DEBUG "Error: $_"
+    log WARNING "Version detection failed, proceeding without cache: $_"
     return "unknown"
   }
 }
@@ -57,7 +57,7 @@ function Validate-CacheWindows {
   $msiFiles = Get-ChildItem -Path $CacheDir -Filter "twingate*.msi" -ErrorAction SilentlyContinue
 
   if ($msiFiles.Count -eq 0) {
-    log DEBUG "No MSI file found in cache"
+    log WARNING "Cache was restored but contains no MSI, re-downloading"
     return $false
   }
 
@@ -82,7 +82,7 @@ function Validate-CacheWindows {
     $record = $view.GetType().InvokeMember('Fetch', 'InvokeMethod', $null, $view, $null)
 
     if ($null -eq $record) {
-      log DEBUG "Cached MSI has no ProductName property"
+      log WARNING "Cached MSI has no ProductName property, re-downloading"
       Clear-CacheWindows -CacheDir $CacheDir
       return $false
     }
@@ -92,7 +92,7 @@ function Validate-CacheWindows {
 
     if ($ExpectedVersion -and $ExpectedVersion -ne 'unknown' -and
         $productName -notmatch ('\b' + [regex]::Escape($ExpectedVersion) + '\b')) {
-      log DEBUG "Cached MSI is version-mismatched (wanted $ExpectedVersion)"
+      log WARNING "Cached MSI is version-mismatched (wanted $ExpectedVersion), re-downloading"
       Clear-CacheWindows -CacheDir $CacheDir
       return $false
     }
@@ -100,7 +100,7 @@ function Validate-CacheWindows {
     log DEBUG "Cache is valid"
     return $true
   } catch {
-    log DEBUG "Cached MSI is corrupted: $_"
+    log WARNING "Cached MSI is corrupted, re-downloading: $_"
     Clear-CacheWindows -CacheDir $CacheDir
     return $false
   } finally {
