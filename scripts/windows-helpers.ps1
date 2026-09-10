@@ -14,10 +14,21 @@ function Get-TwingateVersion {
     $msiUrl = "https://api.twingate.com/download/windows?installer=msi"
     log DEBUG "Fetching from $msiUrl"
 
-    $response = Invoke-WebRequest -Uri $msiUrl -Method Get -UseBasicParsing -MaximumRedirection 0 -ErrorAction SilentlyContinue
-    $finalUrl = $response.Headers.Location
+    # The download URL redirects twice (api.twingate.com -> api.<region>.twingate.com
+    # -> binaries.twingate.com/.../versions/<x.y.z>/...), and only the last hop carries
+    # the version. HEAD follows the whole chain without pulling down the 30MB body.
+    $ProgressPreference = 'SilentlyContinue'
+    $response = Invoke-WebRequest -Uri $msiUrl -Method Head -UseBasicParsing
 
-    log DEBUG "Redirect location: $finalUrl"
+    # Windows PowerShell 5.1 exposes the resolved URI as BaseResponse.ResponseUri;
+    # PowerShell 6+ swaps in HttpClient, where it is RequestMessage.RequestUri.
+    $finalUrl = if ($response.BaseResponse.ResponseUri) {
+      $response.BaseResponse.ResponseUri.AbsoluteUri
+    } else {
+      $response.BaseResponse.RequestMessage.RequestUri.AbsoluteUri
+    }
+
+    log DEBUG "Resolved download URL: $finalUrl"
 
     if ($finalUrl -match 'versions/([\d.]+)/') {
       $version = $matches[1]

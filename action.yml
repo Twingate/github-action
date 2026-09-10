@@ -195,7 +195,10 @@ runs:
         $env:DEBUG_MODE = '${{ inputs.debug }}'
         . "$env:GITHUB_ACTION_PATH/scripts/windows-helpers.ps1"
 
-        # Download MSI
+        # Download MSI. Windows PowerShell 5.1 renders a progress bar per chunk for
+        # -OutFile, which throttles the transfer to ~100KB/s and pushed this step past
+        # the job timeout; suppressing it brings the 30MB download back to seconds.
+        $ProgressPreference = 'SilentlyContinue'
         $msiUrl = "https://api.twingate.com/download/windows?installer=msi"
         log DEBUG "Downloading Twingate from $msiUrl"
         Invoke-WebRequest -Uri $msiUrl -OutFile ".\twingate_client.msi"
