@@ -14,10 +14,17 @@ function Get-TwingateVersion {
     $msiUrl = "https://api.twingate.com/download/windows?installer=msi"
     log DEBUG "Fetching from $msiUrl"
 
-    $response = Invoke-WebRequest -Uri $msiUrl -Method Get -UseBasicParsing -MaximumRedirection 0 -ErrorAction SilentlyContinue
-    $finalUrl = $response.Headers.Location
+    $response = Invoke-WebRequest -Uri $msiUrl -Method Head -UseBasicParsing
 
-    log DEBUG "Redirect location: $finalUrl"
+    # 5.1 returns HttpWebResponse (ResponseUri); 6+ uses HttpClient (RequestMessage.RequestUri).
+    $base = $response.BaseResponse
+    $finalUrl = if ($base -is [System.Net.HttpWebResponse]) {
+      $base.ResponseUri.AbsoluteUri
+    } else {
+      $base.RequestMessage.RequestUri.AbsoluteUri
+    }
+
+    log DEBUG "Resolved download URL: $finalUrl"
 
     if ($finalUrl -match 'versions/([\d.]+)/') {
       $version = $matches[1]
