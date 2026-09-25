@@ -217,11 +217,16 @@ runs:
     - name: Setup and start Twingate (Linux)
       if: runner.os == 'Linux'
       shell: bash
+      env:
+        # Via env, not inline ${{ }}: GitHub prints the expanded run script and
+        # leaked the key (issue #93).
+        TWINGATE_SERVICE_KEY: ${{ inputs.service-key }}
       run: |
         export DEBUG_MODE='${{ inputs.debug }}'
         source "$GITHUB_ACTION_PATH/scripts/linux-helpers.sh"
 
-        echo '${{ inputs.service-key }}' | $SUDO twingate setup --headless -
+        mask_secret "$TWINGATE_SERVICE_KEY"
+        printf '%s\n' "$TWINGATE_SERVICE_KEY" | $SUDO twingate setup --headless -
 
         # Fail fast on runners that fundamentally can't run a VPN client
         # (e.g. ubuntu-slim), instead of retrying silently until timeout.
@@ -277,12 +282,20 @@ runs:
     - name: Setup and Start Twingate (Windows)
       if: runner.os == 'Windows'
       shell: powershell
+      env:
+        # Via env, not inline ${{ }}: GitHub prints the expanded run script and
+        # leaked the key (issue #93).
+        TWINGATE_SERVICE_KEY: ${{ inputs.service-key }}
       run: |
         $env:DEBUG_MODE = '${{ inputs.debug }}'
         . "$env:GITHUB_ACTION_PATH/scripts/windows-helpers.ps1"
 
+        $env:TWINGATE_SERVICE_KEY -split "`n" | ForEach-Object {
+          if ($_ -ne '') { Write-Host "::add-mask::$($_.TrimEnd())" }
+        }
+
         # Install Twingate client and start service
-        Set-Content .\key.json  '${{ inputs.service-key }}'
+        Set-Content .\key.json $env:TWINGATE_SERVICE_KEY
         $key_path = (Get-Item .\key.json | Resolve-Path).ProviderPath
 
         try {
