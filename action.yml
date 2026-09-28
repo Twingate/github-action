@@ -226,6 +226,13 @@ runs:
         source "$GITHUB_ACTION_PATH/scripts/linux-helpers.sh"
 
         mask_secret "$TWINGATE_SERVICE_KEY"
+
+        # `setup` does not switch networks while the client is running, and
+        # `start` is a no-op once it is online, so a second connection in the
+        # same job would report success while still attached to the previous
+        # network.
+        twingate stop >/dev/null 2>&1 || true
+
         printf '%s\n' "$TWINGATE_SERVICE_KEY" | $SUDO twingate setup --headless -
 
         # Fail fast on runners that fundamentally can't run a VPN client
