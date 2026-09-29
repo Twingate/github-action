@@ -16,10 +16,14 @@ log() {
 
 # Mask a secret line-by-line, as GitHub does (a multi-line key leaks otherwise).
 # Defense-in-depth; the real fix is keeping the value out of the run script (#93).
+# Uses `if`, not `[ -n ] && echo`: on a blank last line (e.g. a key saved with a
+# trailing newline) the `&&` form returns 1 and aborts the `bash -e` caller.
 mask_secret() {
   local line
   while IFS= read -r line; do
-    [ -n "$line" ] && echo "::add-mask::$line"
+    if [ -n "$line" ]; then
+      echo "::add-mask::$line"
+    fi
   done <<< "$1"
 }
 

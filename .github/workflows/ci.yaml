@@ -7,6 +7,23 @@ on:
             - 'main'
 
 jobs:
+    test-helpers:
+      runs-on: ubuntu-latest
+      timeout-minutes: 2
+      steps:
+        - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+        # Same shell flags as the action's run steps, so a helper returning
+        # non-zero fails here instead of silently killing the setup step.
+        - name: mask_secret tolerates blank and trailing lines
+          shell: bash --noprofile --norc -e -o pipefail {0}
+          run: |
+            source scripts/linux-helpers.sh
+            for key in 'single-line' $'{\n  "a": 1\n}' $'{"a": 1}\n' $'{"a": 1}\n\n' ''; do
+              mask_secret "$key" >/dev/null
+            done
+            echo "mask_secret OK"
+
     test-linux:
       strategy:
         max-parallel: 4
