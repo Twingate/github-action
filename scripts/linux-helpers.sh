@@ -14,6 +14,19 @@ log() {
   echo "[$level] $@" >&2
 }
 
+# Mask a secret line-by-line, as GitHub does (a multi-line key leaks otherwise).
+# Defense-in-depth; the real fix is keeping the value out of the run script (#93).
+# Uses `if`, not `[ -n ] && echo`: on a blank last line (e.g. a key saved with a
+# trailing newline) the `&&` form returns 1 and aborts the `bash -e` caller.
+mask_secret() {
+  local line
+  while IFS= read -r line; do
+    if [ -n "$line" ]; then
+      echo "::add-mask::$line"
+    fi
+  done <<< "$1"
+}
+
 get_twingate_version() {
   local version
   version=$(curl -sf https://packages.twingate.com/apt/Packages | awk '/^Package: twingate$/,/^Version:/ {if (/^Version:/) print $2}' | sort -V | tail -1)
@@ -29,6 +42,29 @@ get_twingate_version() {
 
 get_os_version() {
   grep VERSION_ID /etc/os-release | cut -d= -f2 | tr -d '"'
+}
+
+# Fetch/install the Twingate APT signing key, retrying transient 401s (issue #86).
+# Write to a temp file so a failure surfaces curl's status, not gpg's empty-body error.
+install_twingate_gpg_key() {
+  local keyring=/usr/share/keyrings/twingate-client-keyring.gpg
+  local tmp
+  tmp=$(mktemp)
+
+  if ! curl -fsSL --retry 5 --retry-all-errors --retry-delay 2 \
+       https://packages.twingate.com/apt/gpg.key -o "$tmp"; then
+    log ERROR "Failed to download Twingate GPG key from https://packages.twingate.com/apt/gpg.key after retries (see curl error above)."
+    rm -f "$tmp"
+    return 1
+  fi
+
+  if ! $SUDO gpg --batch --yes --no-tty --dearmor -o "$keyring" < "$tmp"; then
+    log ERROR "Failed to install Twingate GPG key (gpg --dearmor failed)."
+    rm -f "$tmp"
+    return 1
+  fi
+  rm -f "$tmp"
+  return 0
 }
 
 # Verify the runner can actually run a VPN client before we try to start it.

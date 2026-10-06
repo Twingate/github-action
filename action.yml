@@ -167,8 +167,7 @@ runs:
       run: |
         source "$GITHUB_ACTION_PATH/scripts/linux-helpers.sh"
 
-        # Import Twingate GPG key for signature verification
-        curl -fsSL https://packages.twingate.com/apt/gpg.key | $SUDO gpg --batch --yes --no-tty --dearmor -o /usr/share/keyrings/twingate-client-keyring.gpg
+        install_twingate_gpg_key
 
         # Add Twingate repository with GPG key verification
         echo "deb [signed-by=/usr/share/keyrings/twingate-client-keyring.gpg] https://packages.twingate.com/apt/ * *" | $SUDO tee /etc/apt/sources.list.d/twingate.list
@@ -196,7 +195,7 @@ runs:
         $env:DEBUG_MODE = '${{ inputs.debug }}'
         . "$env:GITHUB_ACTION_PATH/scripts/windows-helpers.ps1"
 
-        # Download MSI
+        $ProgressPreference = 'SilentlyContinue'
         $msiUrl = "https://api.twingate.com/download/windows?installer=msi"
         log DEBUG "Downloading Twingate from $msiUrl"
         Invoke-WebRequest -Uri $msiUrl -OutFile ".\twingate_client.msi"
@@ -218,11 +217,23 @@ runs:
     - name: Setup and start Twingate (Linux)
       if: runner.os == 'Linux'
       shell: bash
+      env:
+        # Via env, not inline ${{ }}: GitHub prints the expanded run script and
+        # leaked the key (issue #93).
+        TWINGATE_SERVICE_KEY: ${{ inputs.service-key }}
       run: |
         export DEBUG_MODE='${{ inputs.debug }}'
         source "$GITHUB_ACTION_PATH/scripts/linux-helpers.sh"
 
-        echo '${{ inputs.service-key }}' | $SUDO twingate setup --headless -
+        mask_secret "$TWINGATE_SERVICE_KEY"
+
+        # `setup` does not switch networks while the client is running, and
+        # `start` is a no-op once it is online, so a second connection in the
+        # same job would report success while still attached to the previous
+        # network.
+        twingate stop >/dev/null 2>&1 || true
+
+        printf '%s\n' "$TWINGATE_SERVICE_KEY" | $SUDO twingate setup --headless -
 
         # Fail fast on runners that fundamentally can't run a VPN client
         # (e.g. ubuntu-slim), instead of retrying silently until timeout.
@@ -278,12 +289,20 @@ runs:
     - name: Setup and Start Twingate (Windows)
       if: runner.os == 'Windows'
       shell: powershell
+      env:
+        # Via env, not inline ${{ }}: GitHub prints the expanded run script and
+        # leaked the key (issue #93).
+        TWINGATE_SERVICE_KEY: ${{ inputs.service-key }}
       run: |
         $env:DEBUG_MODE = '${{ inputs.debug }}'
         . "$env:GITHUB_ACTION_PATH/scripts/windows-helpers.ps1"
 
+        $env:TWINGATE_SERVICE_KEY -split "`n" | ForEach-Object {
+          if ($_ -ne '') { Write-Host "::add-mask::$($_.TrimEnd())" }
+        }
+
         # Install Twingate client and start service
-        Set-Content .\key.json  '${{ inputs.service-key }}'
+        Set-Content .\key.json $env:TWINGATE_SERVICE_KEY
         $key_path = (Get-Item .\key.json | Resolve-Path).ProviderPath
 
         try {
