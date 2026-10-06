@@ -16,9 +16,9 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        runs-on: [ubuntu-latest, ubuntu-24.04, ubuntu-22.04, ubuntu-24.04-arm, ubuntu-22.04-arm]
+        runs-on: [ubuntu-26.04, ubuntu-24.04, ubuntu-22.04, ubuntu-24.04-arm, ubuntu-22.04-arm]
         include:
-          - runs-on: ubuntu-latest
+          - runs-on: ubuntu-26.04
             service-key: SERVICE_KEY
           - runs-on: ubuntu-24.04
             service-key: SERVICE_KEY1
