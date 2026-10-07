@@ -31,11 +31,11 @@ function Get-TwingateVersion {
       log DEBUG "Latest Twingate version: $version"
       return $version
     } else {
-      log DEBUG "Could not extract version from URL"
+      log WARNING "Could not extract version from download URL, proceeding without cache"
       return "unknown"
     }
   } catch {
-    log DEBUG "Error: $_"
+    log WARNING "Version detection failed, proceeding without cache: $_"
     return "unknown"
   }
 }
@@ -52,31 +52,75 @@ function Get-OSVersion {
 }
 
 function Validate-CacheWindows {
-  param([string]$CacheDir)
+  param([string]$CacheDir, [string]$ExpectedVersion)
 
-  $msiFiles = Get-ChildItem -Path $CacheDir -Filter "twingate*.msi" -ErrorAction SilentlyContinue
+  # @() so Count is reliable even when Get-ChildItem finds nothing or is silenced.
+  $msiFiles = @(Get-ChildItem -Path $CacheDir -Filter "twingate*.msi" -ErrorAction SilentlyContinue)
 
   if ($msiFiles.Count -eq 0) {
-    log DEBUG "No MSI file found in cache"
+    log WARNING "Cache was restored but contains no MSI, re-downloading"
     return $false
   }
+
+  $installer = $null
+  $database = $null
+  $view = $null
+  $record = $null
+  $invalidReason = $null
 
   try {
     $msiFile = $msiFiles[0].FullName
 
-    # Try to get MSI properties - this validates the MSI file
-    $msiInfo = Get-ItemProperty -Path $msiFile
-    if (-not $msiInfo) {
-      log DEBUG "Cached MSI is corrupted"
-      Remove-Item -Path $CacheDir -Recurse -Force -ErrorAction SilentlyContinue
-      return $false
+    # OpenDatabase parses the MSI, so a truncated or corrupt file throws here rather
+    # than surviving to msiexec. Mode 0 is read-only.
+    $installer = New-Object -ComObject WindowsInstaller.Installer
+    $database = $installer.GetType().InvokeMember('OpenDatabase', 'InvokeMethod', $null, $installer, @($msiFile, 0))
+
+    # ProductVersion is not usable for this check: MSI caps the major field at 255, so
+    # a client version like 2026.239.5147 is stored as 20.26.239.5147. ProductName
+    # ("Twingate <version>") carries the upstream version verbatim.
+    $view = $database.GetType().InvokeMember('OpenView', 'InvokeMethod', $null, $database,
+      @("SELECT Value FROM Property WHERE Property = 'ProductName'"))
+    $view.GetType().InvokeMember('Execute', 'InvokeMethod', $null, $view, $null) | Out-Null
+    $record = $view.GetType().InvokeMember('Fetch', 'InvokeMethod', $null, $view, $null)
+
+    if ($null -eq $record) {
+      $invalidReason = "Cached MSI has no ProductName property"
     } else {
-      log DEBUG "Cache is valid"
-      return $true
+      $productName = $record.GetType().InvokeMember('StringData', 'GetProperty', $null, $record, @(1))
+      log DEBUG "Cached MSI ProductName: $productName"
+
+      # Compare the trailing version token exactly. A substring or word-boundary match
+      # would accept 2026.239.5147.1 as 2026.239.5147, letting a different build pass.
+      $cachedVersion = if ($productName -match '(\d+(?:\.\d+)+)\s*$') { $matches[1] } else { '' }
+
+      if ($ExpectedVersion -and $ExpectedVersion -ne 'unknown' -and $cachedVersion -ne $ExpectedVersion) {
+        $invalidReason = "Cached MSI is version-mismatched (wanted $ExpectedVersion, found '$cachedVersion')"
+      }
     }
   } catch {
-    log DEBUG "Cached MSI is corrupted: $_"
-    Remove-Item -Path $CacheDir -Recurse -Force -ErrorAction SilentlyContinue
+    $invalidReason = "Cached MSI is corrupted: $_"
+  } finally {
+    # Release the COM handles before any cleanup below, so nothing holds the MSI open.
+    foreach ($obj in @($record, $view, $database, $installer)) {
+      if ($obj) { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($obj) }
+    }
+  }
+
+  if ($invalidReason) {
+    log WARNING "$invalidReason, re-downloading"
+    Clear-CacheWindows -CacheDir $CacheDir
     return $false
   }
+
+  log DEBUG "Cache is valid"
+  return $true
+}
+
+function Clear-CacheWindows {
+  param([string]$CacheDir)
+
+  # Clear the contents but keep the directory, matching validate_cache_linux and
+  # leaving the path in place for the download step and the cache save.
+  Remove-Item -Path (Join-Path $CacheDir '*') -Recurse -Force -ErrorAction SilentlyContinue
 }
