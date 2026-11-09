@@ -44,3 +44,13 @@ jobs:
         run: bash spike/engine/macos.sh start
       - name: Do they still get tokens after that step?
         run: bash spike/engine/macos.sh check
+
+  container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start a hardened container with docker run -e NAME (name only)
+        run: bash spike/engine/container.sh start
+      - name: Does the container still get tokens after that step?
+        run: bash spike/engine/container.sh check
