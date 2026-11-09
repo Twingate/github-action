@@ -51,12 +51,13 @@ if ($Mode -eq 'start') {
 
     # Option C: the action writes the variables into the service's Environment value and starts it.
     # pwsh is not a real service, so the service manager gives up on it after 30 s; the first lines are enough.
-    sc.exe create $Svc binPath= "`"$Pwsh`" -NoProfile -NonInteractive -File `"$Dir\service.ps1`" -Source - -Log `"$Dir\optionc.log`"" start= demand | Out-Null
+    sc.exe create $Svc binPath= "`"$Pwsh`" -NoProfile -NonInteractive -File `"$Dir\service.ps1`" -Source - -Log `"$Dir\optionc.log`"" start= demand | ForEach-Object { "sc create: $_" }
     New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\$Svc" -Name Environment -PropertyType MultiString -Force -Value @(
         "ACTIONS_ID_TOKEN_REQUEST_URL=$env:ACTIONS_ID_TOKEN_REQUEST_URL",
         "ACTIONS_ID_TOKEN_REQUEST_TOKEN=$env:ACTIONS_ID_TOKEN_REQUEST_TOKEN"
     ) | Out-Null
-    sc.exe start $Svc | Out-Null
+    sc.exe start $Svc | ForEach-Object { "sc start: $_" }
+    sc.exe qc $Svc | Select-String BINARY_PATH_NAME | ForEach-Object { "sc qc: $($_.Line.Trim())" }
 
     Start-Sleep -Seconds 10
     Get-Content "$Dir\control.log", "$Dir\service.log", "$Dir\optionc.log" -ErrorAction SilentlyContinue

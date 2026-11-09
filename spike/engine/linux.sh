@@ -33,6 +33,7 @@ start() {
   sudo install -d -m 700 /var/log/wif-spike
 
   result "linux: the job's request token is $(request_token_lifetime)"
+  printf '%s' "$ACTIONS_ID_TOKEN_REQUEST_TOKEN" | sha256sum | cut -c1-12 > "$RUNNER_TEMP/request_token_hash"
   result "linux: a step gets a token: $("$DIR/probe.sh")"
 
   result "linux control: a root system service, nothing forwarded: $(sudo systemd-run --wait --pipe --quiet "$DIR/probe.sh" 2>&1)"
@@ -56,6 +57,7 @@ start() {
 
 check() {
   sleep 30
+  result "linux: in a later step the request token is $([ "$(printf '%s' "$ACTIONS_ID_TOKEN_REQUEST_TOKEN" | sha256sum | cut -c1-12)" = "$(cat "$RUNNER_TEMP/request_token_hash")" ] && echo the same || echo different), $(request_token_lifetime)"
   local end after
   end=$(cat "$END")
   after=$(sudo awk -v end="$end" '$1 > end' "$LOG")
