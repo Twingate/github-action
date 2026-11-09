@@ -1,0 +1,46 @@
+name: WIF engine-side spike
+
+# Can the engine, running as a system service, get the job's OIDC token when
+# the CLI forwards the job's variables to it? Prints results only, never a value.
+
+on:
+  push:
+    branches: [spike/wif-engine-side]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Forward the variables to a root service
+        run: bash spike/engine/linux.sh start
+      - name: Does the service still get tokens after that step?
+        run: bash spike/engine/linux.sh check
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Forward the variables to a SYSTEM process
+        run: ./spike/engine/windows.ps1 start
+        shell: pwsh
+      - name: Does it still get tokens after that step?
+        run: ./spike/engine/windows.ps1 check
+        shell: pwsh
+
+  macos:
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Forward the variables to a root daemon and a GUI-domain agent
+        run: bash spike/engine/macos.sh start
+      - name: Do they still get tokens after that step?
+        run: bash spike/engine/macos.sh check
