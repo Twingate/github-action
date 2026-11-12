@@ -160,8 +160,14 @@ When running steps that run inside a docker container you'll need to override th
 to remove the `168.63.129.16` and search statement by running the following commands inside the container:
 
 ```
-sed '/^nameserver 168.63.129.16$/d; /^search/d' /etc/resolv.conf > /tmp/resolv.conf && cat /tmp/resolv.conf > /etc/resolv.conf
+sed '/^nameserver 168.63.129.16$/d; /^search/d' /etc/resolv.conf > /tmp/resolv.conf &&
+{ grep -q '^nameserver' /tmp/resolv.conf || echo 'nameserver 127.0.0.53' >> /tmp/resolv.conf; } &&
+cat /tmp/resolv.conf > /etc/resolv.conf
 ```
+
+The second line adds the host's systemd-resolved stub (`127.0.0.53`) back if removing `168.63.129.16` left the
+container with no nameserver at all (see [Runners where the container only gets `168.63.129.16`](#runners-where-the-container-only-gets-1686312916) below).
+`127.0.0.53` is only reachable when the container shares the host's network (`docker run --network host`), which is what this repository's CI tests.
 
 ### Technical details
 
@@ -197,3 +203,20 @@ Current DNS Server: 100.95.0.251
 However, when running a docker container that address is also copied to its `resolv.conf` file but the logic on when to use it is lost.
 Depending on the order of nameservers in `resolv.conf` - `168.63.129.16` might appear first and override the system's DNS preventing requests from reaching the Twingate Client.
 The only workaround is to remove that nameserver from the container's `resolv.conf` file (it will never need it anyway as its not an Azure resource).
+
+### Runners where the container only gets `168.63.129.16`
+
+On most GitHub-hosted runners `/etc/resolv.conf` is the systemd-resolved stub (`resolv.conf mode: stub`), so a container started with
+`--network host` gets `nameserver 127.0.0.53` and the `sed` above removes nothing.
+
+Since November 2026 some runners (seen in the Azure `westus2` region) instead have `/etc/resolv.conf` as a regular file (`resolv.conf mode: foreign`):
+```
+# Written by repoint-resolv-conf, which forwards through the egress proxy while it is healthy.
+...
+nameserver 127.0.0.100
+nameserver 127.0.0.53
+nameserver 168.63.129.16
+```
+Docker drops the loopback entries from that file, so the container's `resolv.conf` only has `nameserver 168.63.129.16`.
+Removing it leaves no nameserver and every DNS lookup inside the container fails. Adding `127.0.0.53` back sends lookups
+through the host's systemd-resolved, and from there to the Twingate Client, just like on the other runners.

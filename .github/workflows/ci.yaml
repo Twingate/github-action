@@ -63,6 +63,11 @@ jobs:
 
         - run: cat /run/systemd/resolve/resolv.conf
 
+        - name: Host /etc/resolv.conf
+          run: |
+            ls -l /etc/resolv.conf
+            cat /etc/resolv.conf
+
         - run: resolvectl status
 
         - name: Access a secure resource
@@ -75,7 +80,11 @@ jobs:
         - name: Access a secure resource from a docker
           run: |
             docker run --rm --network host alpine:3.24 /bin/sh -c '
+              echo "--- container /etc/resolv.conf before sed ---" &&
+              cat /etc/resolv.conf &&
+              echo "--- container /etc/resolv.conf after sed ---" &&
               sed "/^nameserver 168.63.129.16$/d; /^search/d" /etc/resolv.conf > /tmp/resolv.conf &&
+              { grep -q "^nameserver" /tmp/resolv.conf || echo "nameserver 127.0.0.53" >> /tmp/resolv.conf; } &&
               cat /tmp/resolv.conf > /etc/resolv.conf &&
               cat /etc/resolv.conf &&
               apk add --no-cache curl &&
